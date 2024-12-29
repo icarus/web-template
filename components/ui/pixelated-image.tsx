@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { Ref, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface PixelatedImageProps extends React.ComponentProps<typeof Image> {
@@ -79,7 +79,7 @@ export function PixelatedImage({
   return (
     <div className="relative">
       <canvas
-        ref={canvasRef}
+        ref={canvasRef as Ref<HTMLCanvasElement>}
         className={cn(
           'transition-opacity duration-300',
           isLoading ? 'opacity-100' : 'opacity-0',
