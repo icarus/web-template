@@ -1,7 +1,16 @@
-import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+const withNextIntl = createNextIntlPlugin();
 
-export default nextConfig;
+export default withNextIntl({
+  i18n: {
+    locales: ['en', 'es'],
+    defaultLocale: 'es',
+  },
+  webpack(config) {
+    return config;
+  },
+  nextIntl: {
+    request: './app/i18n/request.ts',
+  },
+});
