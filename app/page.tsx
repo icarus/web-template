@@ -9,12 +9,10 @@ export default function Home() {
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
         <PixelatedImage
           className="aspect-video w-1/2 object-contain m-auto rounded-lg"
-          src="/image.jpg"
+          src="/image.webp"
           alt="Random"
           width={1920}
           height={1080}
-          pixelationLevels={[32, 16, 8, 4, 1]}
-          transitionDuration={300}
         />
       </main>
       <footer className="row-start-3 flex gap-1 flex-wrap items-center justify-center">

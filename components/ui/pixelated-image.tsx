@@ -13,21 +13,22 @@ export function PixelatedImage({
   src,
   alt,
   className,
-  pixelationLevels = [512, 256, 128, 64, 4, 1],
-  transitionDuration = 400,
+  pixelationLevels = [128, 64, 32, 16, 8, 4, 1],
+  transitionDuration = 200,
   ...props
 }: PixelatedImageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [, setCurrentLevel] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const processedRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || typeof src !== 'string') return;
+    if (!canvas || typeof src !== 'string' || processedRef.current) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    processedRef.current = true;
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
 
@@ -35,36 +36,42 @@ export function PixelatedImage({
       canvas.width = img.width;
       canvas.height = img.height;
 
-      let currentPixelation = 0;
-
-      const animate = () => {
-        if (currentPixelation >= pixelationLevels.length) {
-          setIsLoading(false);
+      const processNextLevel = (index: number) => {
+        if (index >= pixelationLevels.length) {
+          requestAnimationFrame(() => setIsLoading(false));
           return;
         }
 
+        ctx.imageSmoothingEnabled = false;
+        const pixelSize = pixelationLevels[index];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        const pixelSize = pixelationLevels[currentPixelation];
-        const w = canvas.width / pixelSize;
-        const h = canvas.height / pixelSize;
+        const w = Math.floor(canvas.width / pixelSize);
+        const h = Math.floor(canvas.height / pixelSize);
 
-        ctx.drawImage(canvas, 0, 0, w, h);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(canvas, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
 
-        currentPixelation++;
-        setCurrentLevel(currentPixelation);
+        tempCanvas.width = w;
+        tempCanvas.height = h;
 
-        setTimeout(() => {
-          requestAnimationFrame(animate);
-        }, transitionDuration);
+        tempCtx.drawImage(canvas, 0, 0, w, h);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+
+        setTimeout(() => processNextLevel(index + 1), transitionDuration);
       };
 
-      animate();
+      processNextLevel(0);
     };
 
     img.src = src;
+
+    return () => {
+      processedRef.current = false;
+    };
   }, [src, pixelationLevels, transitionDuration]);
 
   return (
@@ -82,7 +89,7 @@ export function PixelatedImage({
         src={src}
         alt={alt}
         className={cn(
-          'absolute inset-0 transition-opacity duration-300',
+          'absolute inset-0',
           isLoading ? 'opacity-0' : 'opacity-100',
           className
         )}
