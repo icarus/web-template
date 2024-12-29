@@ -1,0 +1,110 @@
+### **Project Structure and Organization**
+
+1. **File and Directory Naming Conventions**
+   - **Directories**: Use lowercase with dashes for directory names (e.g., `components/auth-wizard`, `pages/api/user`).
+   - **Files**: Prefer lowercase and descriptive names for files (e.g., `header.tsx`, `auth-form.tsx`).
+   - **Component Naming**: Use **named exports** for components (e.g., `export function Button() {...}`).
+   - **Organization**: Structure files into the following key groups:
+     - `components/`: For UI components and subcomponents.
+     - `helpers/`: For utility functions and hooks.
+     - `static/`: For static assets (e.g., images, icons).
+     - `types/`: For TypeScript type definitions (e.g., interfaces).
+     - `locales/`: For internationalization (`next-i18next` configurations and translation files).
+
+2. **Internationalization**
+   - Use **next-i18next** for internationalization.
+   - Store language translations in the `locales/` directory, maintaining separate JSON files for each language (e.g., `locales/en.json`, `locales/es.json`).
+   - Use `useTranslation` from `next-i18next` to manage translations in components.
+   - Ensure fallback languages are set and translations are managed through `next-i18next` configurations.
+
+---
+
+### **Code Style and Structure**
+
+1. **Functionality and Composition**
+   - **Functional Components**: Always use functional components in React.
+   - **Modularization**: Break down large components into smaller, reusable subcomponents. Avoid code duplication.
+   - **Declarative Programming**: Use declarative patterns for UI rendering (e.g., JSX).
+   - **Iteration over Duplication**: Use loops (e.g., `.map()`) for rendering lists instead of duplicating code.
+   - **Descriptive Variable Names**: Name variables and functions with clear, descriptive names (e.g., `isLoading`, `hasError`, `fetchData`).
+
+2. **TypeScript Usage**
+   - **Types over Interfaces**: Use **interfaces** for type definitions wherever possible, and avoid using `type` unless necessary.
+   - **Avoid Enums**: Do not use enums. Prefer **maps** or **objects** for constant values.
+   - **Interfaces for Props and State**: Always define interfaces for component props and state.
+   - **Typed Functions**: Type all functions, parameters, and return values.
+
+3. **State and Effects**
+   - **Minimal use of `useState` and `useEffect`**: Prefer using React Server Components (RSC) whenever possible to avoid unnecessary client-side state management.
+   - **Use Suspense**: Wrap client components in `Suspense` with fallback UI where necessary.
+   - **Data Fetching**: Use Next.js `getServerSideProps` or `getStaticProps` for SSR (Server-Side Rendering) and avoid client-side data fetching when unnecessary.
+   - **Optimized State**: Only use `useState` for local component state and `useEffect` for side effects.
+
+---
+
+### **Styling**
+
+1. **Shadcn UI, Radix, and Tailwind CSS**
+   - **Shadcn UI** and **Radix UI** should be used for foundational UI components (modals, tooltips, dropdowns, etc.).
+   - **Tailwind CSS**: Use for all layout, spacing, typography, and responsive styling.
+     - Adhere to a **mobile-first** approach when designing layouts with Tailwind.
+     - Ensure responsive design by using Tailwind's responsive utilities (e.g., `sm:`, `md:`, `lg:`).
+     - Avoid inline styles; use Tailwind classes instead.
+     - Use **`@apply`** for reusable classes in your CSS files if needed.
+
+2. **Responsiveness**
+   - Follow a **mobile-first** approach: Design for small screens first, then scale up for larger devices.
+   - Ensure all components are fully responsive, adjusting the layout and visibility based on screen size.
+
+---
+
+### **Performance Optimization**
+
+1. **React Performance Best Practices**
+   - **Minimize `use client`**: Prefer Server Components (RSC) for rendering over `use client`. Only use `use client` for:
+     - Interacting with the Web API.
+     - Small interactive client-side components that don’t affect the performance significantly.
+   - **Dynamic Component Loading**: Use **React.lazy** and `next/dynamic` for loading non-critical components asynchronously.
+   - **Suspense for Data Fetching**: Use `React.Suspense` and `React.lazy` for managing loading states and data fetching in the UI.
+
+2. **Image Optimization**
+   - **Optimize Images**: Use WebP format for images whenever possible to reduce size and improve performance.
+   - Implement **lazy loading** for all images, and provide `sizes` and `srcSet` attributes for responsive image scaling.
+   - Use Next.js **`<Image />`** component for automatic image optimization.
+
+3. **Web Vitals**
+   - Focus on optimizing **LCP (Largest Contentful Paint)**, **CLS (Cumulative Layout Shift)**, and **FID (First Input Delay)** for better Core Web Vitals scores.
+   - Implement performance monitoring tools (e.g., Google Lighthouse, Web Vitals).
+
+---
+
+### **Next.js Specific Guidelines**
+
+1. **Routing and API**
+   - Use **Next.js App Router** for routing and organizing pages. Ensure pages are stored under the `app/` directory.
+   - Use **Next.js API Routes** under the `pages/api/` directory for backend logic.
+   - **Dynamic Routing**: Prefer dynamic routes using file-based routing in the `app/` directory.
+
+2. **Data Fetching**
+   - Use **getServerSideProps** and **getStaticProps** for data fetching at the page level.
+   - **Static Site Generation (SSG)**: Use SSG with `getStaticProps` for content that does not change frequently.
+   - **Server-Side Rendering (SSR)**: Use SSR with `getServerSideProps` when data needs to be updated on each request.
+
+3. **Error Handling**
+   - Use **Error Boundaries** for managing JavaScript errors in components.
+   - Use **try-catch blocks** for error handling in async functions.
+
+4. **URL Search Parameter Management**
+   - Use **`nuqs`** for managing URL search parameters and state. This ensures consistency when dealing with dynamic routes or complex query parameters.
+
+---
+
+### **Additional Guidelines**
+
+1. **Testing**
+   - Ensure all critical functionality is tested using Jest and React Testing Library.
+   - Test components, utility functions, and hooks with appropriate coverage.
+
+2. **Documentation**
+   - Maintain updated documentation in the `README.md` file for easy onboarding of new team members.
+   - Document all key components, utility functions, and types.
