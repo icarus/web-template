@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 interface PixelatedImageProps extends React.ComponentProps<typeof Image> {
   pixelationLevels?: number[];
   transitionDuration?: number;
+  priority?: boolean;
 }
 
 export function PixelatedImage({
@@ -14,10 +15,11 @@ export function PixelatedImage({
   alt,
   className,
   pixelationLevels = [128, 64, 32, 16, 8, 4, 1],
-  transitionDuration = 200,
+  transitionDuration = 150,
+  priority,
   ...props
 }: PixelatedImageProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const processedRef = useRef(false);
 
@@ -93,6 +95,7 @@ export function PixelatedImage({
           isLoading ? 'opacity-0' : 'opacity-100',
           className
         )}
+        priority={priority}
         {...props}
       />
     </div>
