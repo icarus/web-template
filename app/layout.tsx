@@ -28,7 +28,7 @@ export default async function RootLayout({
 }>) {
 
   return (
-    <html lang={locale}>
+    <html lang="es">
       <body
         className={cn(
           vcr.variable,
