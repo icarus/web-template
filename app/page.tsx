@@ -1,29 +1,22 @@
-import { useTranslations } from 'next-intl';
-import { PixelatedImage } from '@/components/ui/pixelated-image';
-import Link from 'next/link';
-import { TextShimmer } from '@/components/motion-ui/text-shimmer';
+import Spline from "@splinetool/react-spline";
 
 export default function Home() {
-  const t = useTranslations("HomePage");
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-8 row-start-2 items-center">
-        <PixelatedImage
-          className="pointer-events-none aspect-video w-1/2 object-contain m-auto rounded-lg"
-          src="/image.webp"
-          alt="Placeholder"
-          width={1920}
-          height={1080}
-          priority
-        />
-      </main>
-      <Link href="/demo" className="px-4 py-1.5 rounded-full border border-black/20 hover:scale-105 transition-all duration-300">
-        <TextShimmer>Transición de páginas</TextShimmer>
-      </Link>
-      <footer className="row-start-3 flex gap-1 flex-wrap items-center justify-center">
-        {t('footer')}
-      </footer>
-    </div>
+    <main className="p-8 relative flex flex-col justify-end w-screen h-screen">
+      <div className="ml-auto w-1/2 h-full bg-black/80 backdrop-blur-xl rounded-lg border border-white/20 text-white z-10 max-w-4xl flex flex-col items-center justify-center gap-6">
+        <h1 className="font-mono uppercase text-5xl text-center text-balance font-medium">
+          FOUNDERS
+          <br />
+          INVESTING IN
+          <br />
+          FOUNDERS.
+        </h1>
+      </div>
+      <div className="absolute bg-black/25 rounded-full blur-4xl w-1/2 h-1/2" />
+      <Spline
+        scene="https://prod.spline.design/WGxyp8AnbwTseFgu/scene.splinecode"
+        className="-z-10 absolute top-0 -translate-x-1/2 left-1/4 w-full h-full"
+      />
+    </main>
   );
 }

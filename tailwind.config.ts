@@ -9,6 +9,10 @@ export default {
   theme: {
   	extend: {
   		colors: {
+  			yellow: {
+  				'300': '#FFEC40',
+  				'500': '#F9BC12'
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -50,32 +54,48 @@ export default {
   				'5': 'hsl(var(--chart-5))'
   			}
   		},
+  		backgroundImage: {
+  			'radial-gradient': 'radial-gradient(100% 100% at 50% 0%, #FFEC40 0%, #F9BC12 100%)'
+  		},
   		fontFamily: {
-  			serif: [
-  				'var(--font-eb-garamond)'
+  			mono: [
+  				'var(--font-kode-mono)'
   			],
   			sans: [
-  				'var(--font-dm-sans)'
+  				'var(--font-inter)'
   			]
   		},
   		keyframes: {
-  			heartbeat: {
-  				'0%, 100%': {
-  					transform: 'scale(0.9)'
+  			'border-beam': {
+  				'100%': {
+  					'offset-distance': '100%'
+  				}
+  			},
+  			marquee: {
+  				from: {
+  					transform: 'translateX(0)'
   				},
-  				'50%': {
-  					transform: 'scale(1.2)'
+  				to: {
+  					transform: 'translateX(calc(-100% - var(--gap)))'
+  				}
+  			},
+  			'marquee-vertical': {
+  				from: {
+  					transform: 'translateY(0)'
+  				},
+  				to: {
+  					transform: 'translateY(calc(-100% - var(--gap)))'
   				}
   			}
   		},
   		animation: {
-  			heartbeat: 'heartbeat 1s ease-in-out infinite'
+  			marquee: 'marquee var(--duration) infinite linear',
+  			'marquee-vertical': 'marquee-vertical var(--duration) linear infinite'
   		},
-  		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
-  		}
+      blur: {
+        '4xl': '96px',
+        '5xl': '128px',
+      }
   	}
   },
   plugins: [],

@@ -1,71 +1,79 @@
-'use client';
+import React, { useState, useEffect } from "react";
+import { motion, useAnimation } from "framer-motion";
 
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
-
-const expand = {
+const anim = {
   initial: {
-    top: 0
+    opacity: 1,
   },
-  enter: (i: number) => ({
-    top: "100vh",
-    transition: {
-      duration: 0.4,
-      delay: 0.05 * i,
-      ease: [0.215, 0.61, 0.355, 1],
-    },
-    transitionEnd: { height: "0", top: "0" }
+  open: (i: number) => ({
+    opacity: 0,
+    transition: { duration: 0, delay: 0.03 * i },
   }),
-  exit: (i: number) => ({
-    height: "100vh",
-    transition: {
-      duration: 0.4,
-      delay: 0.05 * i,
-      ease: [0.215, 0.61, 0.355, 1]
-    }
-  })
+  closed: (i: number) => ({
+    opacity: 1,
+    transition: { duration: 0, delay: 0.03 * i },
+  }),
 };
 
-const opacity = {
-  initial: {
-    opacity: 0.5
-  },
-  enter: {
-    opacity: 0
-  },
-  exit: {
-    opacity: 0.5
+const shuffle = (a: number[]) => {
+  let j, x, i;
+  for (i = a.length - 1; i > 0; i--) {
+    j = Math.floor(Math.random() * (i + 1));
+    x = a[i];
+    a[i] = a[j];
+    a[j] = x;
   }
+  return a;
 };
 
-interface PixelTransitionProps {
-  columns?: number;
-  className?: string;
-}
+const PixelTransition: React.FC = () => {
+  const [isVisible, setIsVisible] = useState(true);
+  const controls = useAnimation();
 
-export function PixelTransition({ columns = 5, className }: PixelTransitionProps) {
-  return (
-    <div className={cn("fixed inset-0 pointer-events-none z-50", className)}>
+  const getBlocks = () => {
+    const { innerWidth, innerHeight } = window;
+    const blockSize = innerWidth * 0.05;
+    const nbOfBlocks = Math.ceil(innerHeight / blockSize);
+    const shuffledIndexes = shuffle([...Array(nbOfBlocks)].map((_, i) => i));
+    return shuffledIndexes.map((randomIndex, index) => (
       <motion.div
+        key={index}
+        className="w-full h-[10vw] bg-yellow-300"
+        variants={anim}
         initial="initial"
-        animate="enter"
-        exit="exit"
-        variants={opacity}
-        className="absolute inset-0 bg-black"
+        animate="open"
+        custom={randomIndex}
       />
-      <div className="flex h-full">
-        {[...Array(columns)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial="initial"
-            animate="enter"
-            exit="exit"
-            custom={columns - i}
-            variants={expand}
-            className="relative flex-1 bg-black"
-          />
-        ))}
-      </div>
-    </div>
+    ));
+  };
+
+  useEffect(() => {
+    const handleAnimationComplete = async () => {
+      await controls.start("closed");
+      setIsVisible(false);
+    };
+
+    controls.start("open").then(() => {
+      const totalDuration = 0.03 * 15;
+      setTimeout(handleAnimationComplete, totalDuration * 1000);
+    });
+  }, [controls]);
+
+  if (!isVisible) return null;
+
+  return (
+    <motion.div
+      className="flex h-screen overflow-hidden relative z-[999] pointer-events-none"
+      animate={controls}
+      initial="initial"
+    >
+      {[...Array(20)].map((_, index) => (
+        <div key={index} className="w-[10vw] h-full flex flex-col">
+          {getBlocks()}
+        </div>
+      ))}
+    </motion.div>
   );
-}
+};
+
+export default PixelTransition;

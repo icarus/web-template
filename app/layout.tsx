@@ -1,19 +1,20 @@
-import { EB_Garamond, DM_Sans } from "next/font/google";
+import { Kode_Mono, Inter } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils"
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
+import Header from "@/components/layout/header";
 
-const ebGaramond = EB_Garamond({
+const kodeMono = Kode_Mono({
   subsets: ["latin"],
-  variable: "--font-eb-garamond",
+  variable: "--font-kode-mono",
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -34,8 +35,8 @@ export default async function RootLayout({
     <html lang={locale}>
       <body
         className={cn(
-          ebGaramond.variable,
-          dmSans.variable,
+          kodeMono.variable,
+          inter.variable,
           "font-sans antialiased"
         )}
       >
