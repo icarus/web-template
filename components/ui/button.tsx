@@ -45,22 +45,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button"
 
     return (
-      <div className="relative inline-flex group">
-        <Comp
-          className={cn(buttonVariants({ variant, size, className }))}
-          ref={ref}
-          {...props}
-        />
-        {variant === "gradient" && (
-          <Comp
-            className={cn(
-              buttonVariants({ variant, size, className }),
-              "absolute inset-x-0 top-full blur-4xl"
-            )}
-            {...props}
-          />
-        )}
-      </div>
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
     )
   }
 )

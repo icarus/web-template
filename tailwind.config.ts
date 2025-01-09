@@ -59,12 +59,15 @@ export default {
   		},
   		fontFamily: {
   			mono: [
-  				'var(--font-kode-mono)'
+  				'var(--font-vcr)'
   			],
   			sans: [
   				'var(--font-inter)'
   			]
   		},
+      boxShadow: {
+        'custom-button': '8px 8px 12px 0px rgba(0, 0, 0, 0.25), 2px 0px 0px 0px rgba(255, 255, 255, 0.04) inset, 0px 2px 0px 0px rgba(255, 255, 255, 0.10) inset, -2px 0px 0px 0px rgba(0, 0, 0, 0.50) inset, 0px -2px 0px 0px rgba(0, 0, 0, 0.50) inset',
+      },
   		keyframes: {
   			'border-beam': {
   				'100%': {

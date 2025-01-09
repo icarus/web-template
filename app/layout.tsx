@@ -1,15 +1,15 @@
-import { Kode_Mono, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import type { Metadata } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils"
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
-import Header from "@/components/layout/header";
+import HeaderTest from "@/components/layout/headerTest";
 
-const kodeMono = Kode_Mono({
-  subsets: ["latin"],
-  variable: "--font-kode-mono",
-  display: "swap",
+const vcr = localFont({
+  src: "../fonts/VCR_OSD_MONO.ttf",
+  variable: "--font-vcr",
 });
 
 const inter = Inter({
@@ -35,11 +35,12 @@ export default async function RootLayout({
     <html lang={locale}>
       <body
         className={cn(
-          kodeMono.variable,
+          vcr.variable,
           inter.variable,
           "font-sans antialiased"
         )}
       >
+        <HeaderTest />
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>
