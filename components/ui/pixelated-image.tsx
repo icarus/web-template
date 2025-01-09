@@ -3,8 +3,9 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import type { ImageProps } from 'next/image';
 
-interface PixelatedImageProps extends React.ComponentProps<typeof Image> {
+interface PixelatedImageProps extends Omit<ImageProps, 'ref'> {
   pixelationLevels?: number[];
   transitionDuration?: number;
   priority?: boolean;
@@ -19,7 +20,7 @@ export function PixelatedImage({
   priority,
   ...props
 }: PixelatedImageProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const processedRef = useRef(false);
 
