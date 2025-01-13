@@ -1,9 +1,11 @@
+"use client";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import type { Metadata } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button";
+import { usePathname } from "next/navigation";
 
 const vcr = localFont({
   src: "../fonts/VCR_OSD_MONO.ttf",
@@ -16,16 +18,17 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Felipe Mandiola's Web Template",
-  description: "A template for my (and yours) web projects",
-};
+// export const metadata: Metadata = {
+//   title: "Felipe Mandiola's Web Template",
+//   description: "A template for my (and yours) web projects",
+// };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
 
   return (
     <html lang="es">
@@ -36,9 +39,11 @@ export default async function RootLayout({
           "font-sans antialiased"
         )}
       >
-        <main className="font-mono uppercase relative flex flex-col justify-end w-screen h-screen">
-          <div className="w-1/2 h-full flex items-center justify-center ml-auto">
-            <div className="-mt-8 max-w-96 w-full text-white z-10 flex flex-col items-center justify-center">
+        <main className="font-mono uppercase relative flex flex-col justify-end">
+          {pathname !== "/" && (
+            <>
+              <div className="w-1/2 h-full flex items-center justify-center ml-auto">
+                <div className="-mt-8 max-w-96 w-full text-white z-10 flex flex-col items-center justify-center">
               <header className="bg-black/60 backdrop-blur-xl border-2 border-neutral-800 flex w-full h-12 items-center justify-center text-white text-center">
                 PLATANUS
               </header>
@@ -71,15 +76,17 @@ export default async function RootLayout({
                 </div>
               </div>
             </div>
-          </div>
-            {/* <Image
-              src="/public/platanus.gif"
-              alt="platanus"
-              width={1920}
-              height={1080}
-              className="size-full object-cover"
-            /> */}
-            {children}
+              </div>
+            </>
+          )
+          /* <Image
+            src="/public/platanus.gif"
+            alt="platanus"
+            width={1920}
+            height={1080}
+            className="size-full object-cover"
+          /> */}
+          {children}
         </main>
       </body>
     </html>
