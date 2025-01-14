@@ -72,10 +72,3 @@ body {
     @apply bg-black text-white;
   }
 }
-
-@layer utilities {
-  .prevent-scroll {
-    overflow: hidden;
-    height: 100vh;
-  }
-}
