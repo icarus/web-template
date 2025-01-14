@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Ubuntu } from "next/font/google";
 import localFont from "next/font/local";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -9,10 +9,10 @@ const vcr = localFont({
   variable: "--font-vcr",
 });
 
-const inter = Inter({
+const ubuntu = Ubuntu({
   subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
+  variable: "--font-ubuntu",
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -30,8 +30,8 @@ export default async function RootLayout({
       <body
         className={cn(
           vcr.variable,
-          inter.variable,
-          "font-sans antialiased"
+          ubuntu.variable,
+          "font-sans antialiased w-screen h-svh overflow-hidden"
         )}
       >
         <main>

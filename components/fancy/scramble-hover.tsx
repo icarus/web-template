@@ -22,11 +22,11 @@ const ScrambleHover: React.FC<ScrambleHoverProps> = ({
   scrambleSpeed = 50,
   maxIterations = 10,
   useOriginalCharsOnly = false,
-  characters = "PLATANUS!@#$%^&*()_+",
+  characters = "Platanus!@#$%^&*()_+",
   className,
   scrambledClassName,
   sequential = false,
-  revealDirection = "start",
+  revealDirection = "center",
   ...props
 }) => {
   const [displayText, setDisplayText] = useState(text)

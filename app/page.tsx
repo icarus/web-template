@@ -1,11 +1,14 @@
 "use client";
 
+import PixelTrail from "@/components/animated/pixel-trail";
+import { RippleBackground } from "@/components/animated/ripple";
 import ScrambleHover from "@/components/fancy/scramble-hover";
-import Menu from "@/components/layout/menu";
+import LetterSwapForward from "@/components/fancy/swap-text";
+import Backdrop from "@/components/layout/backdrop";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const links = [
   {
@@ -17,94 +20,43 @@ const links = [
     href: "/",
   },
   {
-    title: "Demo Day",
+    title: "Plata-news",
     href: "/",
   },
   {
-    title: "Blog",
+    title: "Postula",
     href: "/",
-  },
-  {
-    title: "Documentos",
-    href: "/",
-  },
-  {
-    title: "Empleos",
-    href: "/",
-  },
-];
-
-const stats = [
-  {
-    title: "Postulaciones",
-    value: "1,000",
-  },
-  {
-    title: "Dinero invertido",
-    value: "$5,000,000 USD",
-  },
-  {
-    title: "Startups",
-    value: "104",
-  },
-  {
-    title: "XX",
-    value: "XX",
-  },
-  {
-    title: "XX",
-    value: "XX",
-  },
-  {
-    title: "XX",
-    value: "XX",
-  },
-  {
-    title: "XX",
-    value: "XX",
   },
 ];
 
 const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
 
 export default function Home() {
-  const numImages = imageSources.length;
-  const numRows = 2;
-  const numCols = 3;
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % imageSources.length);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <main className="font-mono w-screen h-svh overflow-hidden">
+    <main className="font-sans w-screen h-svh overflow-hidden">
       <Header />
 
-      <div className="grid grid-cols-3 grid-rows-[repeat(auto-fit,minmax(100px,1fr))] w-full h-full">
-        {Array.from({ length: numRows }).map((_, rowIndex) => {
-          const startIndex = (rowIndex + 1) % numImages;
-          return Array.from({ length: numCols }).map((_, colIndex) => {
-            const imageIndex = (startIndex + colIndex) % numImages;
-            return (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={cn(
-                  "relative overflow-hidden [&:nth-child(2n)]:bg-yellow-300 flex items-center justify-center",
-                  imageIndex !== 0 && "[&_img]:scale-[2]",
-                )}
-              >
-                <Image
-                  src={imageSources[imageIndex]}
-                  alt={`Image ${imageIndex + 1}`}
-                  width={1920}
-                  height={1080}
-                  quality={100}
-                  priority
-                  className="inset-0 select-none pointer-events-none w-full object-cover"
-                />
-              </div>
-            );
-          });
-        })}
-      </div>
+      <Content />
 
-      <Stats />
+      <div className="absolute -z-10 w-screen h-screen">
+        <Image
+          src={imageSources[currentImageIndex]}
+          alt={`Image ${currentImageIndex + 1}`}
+          width={1920}
+          height={1080}
+          className="w-full h-full object-cover pointer-events-auto select-none"
+        />
+      </div>
     </main>
   );
 }
@@ -112,7 +64,7 @@ export default function Home() {
 
 const Header = () => {
   return (
-    <header className="hidden bg-black/15 backdrop-blur-xl left-1/2 -translate-x-1/2 z-10 bg-gradient-to-b from-black/60 absolute top-0 items-center mx-auto max-w-screen-xl px-16 h-16 *:h-full font-mono uppercase flex justify-between w-screen border-t border-white/5">
+    <header className="z-[999] left-1/2 -translate-x-1/2 bg-gradient-to-b from-black/60 absolute top-0 items-center mx-auto max-w-screen-xl px-2 md:px-16 h-16 *:h-full flex justify-between w-screen border-t border-white/5">
       <Link href="/" className="flex items-center gap-2">
         <Image
           src="/logo.svg"
@@ -122,66 +74,143 @@ const Header = () => {
         />
       </Link>
 
-      {/* <nav className="ml-auto mr-32 !h-4 text-sm *:*:underline grid grid-cols-2 gap-2 gap-x-32 underline uppercase">
-        {links.map((link, index) => (
-          <Link key={index} href={link.href}>
-            <ScrambleHover text={link.title} />
-          </Link>
-        ))}
-      </nav> */}
-      <Menu />
+      <div className="text-yellow-300 flex items-center gap-2">
+        <ScrambleHover
+          text="Postula"
+          className={cn(
+            "underline text-base cursor-pointer",
+          )}
+        />
+        <div className="relative">
+          <div className="flex size-1.5 bg-yellow-300" />
+          <div className="flex size-1.5 bg-yellow-300 absolute top-0 left-0 animate-ping" />
+        </div>
+      </div>
     </header>
   );
 };
 
-const Stats = () => {
-  return (
-    <div className="hidden bg-black/15 backdrop-blur-xl absolute bottom-0 h-16 *:h-full uppercase flex w-screen border-t border-white/5">
-      <div className="text-nowrap border-r border-white/5 flex items-center gap-3 px-8">
-        Estadísticas en vivo
-        <div className="relative">
-          <div className="flex size-1.5 bg-red-500" />
-          <div className="flex size-1.5 bg-red-500 absolute top-0 left-0 animate-ping" />
-        </div>
-      </div>
+const Content = () => {
+  const [daysLeft, setDaysLeft] = useState(25);
+  const [hoursLeft, setHoursLeft] = useState(4);
+  const [minutesLeft, setMinutesLeft] = useState(20);
+  const [secondsLeft, setSecondsLeft] = useState(40);
 
-      <ul className="w-full flex items-center justify-between px-8">
-        {stats.map((stat, index) => (
+  const padWithZero = (number: number) => number.toString().padStart(2, '0');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDaysLeft((prevDays) => (prevDays > 0 ? prevDays - 1 : 0));
+    }, 86400000); // 86400000 ms = 1 day
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHoursLeft((prevHours) => (prevHours < 23 ? prevHours - 1 : 0));
+    }, 3600000); // 3600000 ms = 1 hour
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMinutesLeft((prevMinutes) => (prevMinutes < 59 ? prevMinutes - 1 : 0));
+    }, 60000); // 60000 ms = 1 minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSecondsLeft((prevSeconds) => (prevSeconds < 59 ? prevSeconds - 1 : 0));
+    }, 1000); // 1000 ms = 1 second
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <>
+      <div className="text-white md:text-center z-10 h-full absolute top-0 p-4 w-full items-center justify-center flex flex-col gap-8">
+        <h1 className="text-3xl md:text-5xl font-medium">Acelera tu startup en LatAm.</h1>
+        <p className="opacity-70 text-sm max-w-lg">
+          Platanus es una startup de capital privado que invierte en founders de LatAm. Invertimos $200K USD por el 5,5% de tu startup, conecta con los mejores founders de LatAm, y haz crecer tu idea.
+        </p>
+
+        {/* <div className="font-mono shadow-2xl mt-8 flex w-fit bg-white/5 backdrop-blur-sm border *:border-0 border-white/10 rounded-xl px-12 p-8">
+          <div className="flex flex-col items-center gap-1">
+            <LetterSwapForward
+              label={padWithZero(daysLeft)}
+              className={cn(
+                "text-4xl",
+              )}
+            />
+            <span className="text-sm font-mono uppercase">
+              Días
+            </span>
+          </div>
+          <hr className="mx-12 my-auto w-px h-1/2 bg-white/20" />
+          <div className="flex flex-col items-center gap-1">
+            <LetterSwapForward
+              label={padWithZero(hoursLeft)}
+              className={cn(
+                "text-4xl",
+              )}
+            />
+            <span className="text-sm font-mono uppercase">
+              Horas
+            </span>
+          </div>
+          <hr className="mx-12 my-auto w-px h-1/2 bg-white/20" />
+          <div className="flex flex-col items-center gap-1">
+            <LetterSwapForward
+              label={padWithZero(minutesLeft)}
+              className={cn(
+                "text-4xl",
+              )}
+            />
+            <span className="text-sm font-mono uppercase">
+              Minutos
+            </span>
+          </div>
+          <hr className="mx-12 my-auto w-px h-1/2 bg-white/20" />
+          <div className="flex flex-col items-center gap-1">
+            <LetterSwapForward
+              label={padWithZero(secondsLeft)}
+              className={cn(
+                "text-4xl",
+              )}
+            />
+            <span className="text-sm font-mono uppercase">
+              Segundos
+            </span>
+          </div>
+        </div> */}
+      </div>
+      <ul className="z-10 absolute bottom-0 w-screen p-8 bg-gradient-to-t from-black/60 flex gap-8 items-center justify-center">
+        {links.map((link, index) => (
           <li
             key={index}
-            className="flex flex-col gap-0 text-base overflow-hidden"
+            className="flex items-center gap-2"
           >
-            <span className="text-xs text-white">{stat.title}</span>
             <ScrambleHover
-              text={stat.value}
-              className="text-base cursor-pointer"
+              text={link.title}
+              className={cn(
+                "underline text-base cursor-pointer",
+                index === links.length - 1 && "text-yellow-300"
+              )}
             />
+            {index === links.length - 1 && (
+              <div className="relative">
+                <div className="flex size-1.5 bg-yellow-300" />
+                <div className="flex size-1.5 bg-yellow-300 absolute top-0 left-0 animate-ping" />
+              </div>
+            )}
           </li>
         ))}
       </ul>
-    </div>
-  );
-};
-
-const GridElement = (index: number) => {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <div
-      className={cn(
-        "[&:nth-child(2n)]:bg-neutral-400 flex flex-1 transition-[flex] duration-1000 ease-out",
-        hovered ? "flex-[10]" : "flex-1"
-      )}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <Image
-        src={imageSources[index % imageSources.length]}
-        alt="Banana"
-        width={1920}
-        height={1080}
-        className="w-full h-full object-cover"
-      />
-    </div>
+      <div className="absolute inset-96 bg-black/80 blur-3xl rounded-3xl from-black/60" />
+    </>
   );
 };

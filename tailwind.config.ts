@@ -62,7 +62,7 @@ export default {
   				'var(--font-vcr)'
   			],
   			sans: [
-  				'var(--font-inter)'
+  				'var(--font-ubuntu)'
   			]
   		},
       boxShadow: {
