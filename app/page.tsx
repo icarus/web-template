@@ -59,7 +59,7 @@ export default function Home() {
 }
 
 
-export const Header = () => {
+const Header = () => {
   return (
     <>
       <header className="z-[999] left-1/2 -translate-x-1/2 absolute top-0 items-center mx-auto max-w-screen-xl px-2 md:px-16 h-16 *:h-full flex justify-between w-screen border-t border-white/5">
@@ -90,7 +90,7 @@ export const Header = () => {
   );
 };
 
-export const Content = () => {
+const Content = () => {
   // const [daysLeft, setDaysLeft] = useState(25);
   // const [hoursLeft, setHoursLeft] = useState(4);
   // const [minutesLeft, setMinutesLeft] = useState(20);

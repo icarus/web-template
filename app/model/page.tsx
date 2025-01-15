@@ -1,7 +1,6 @@
 "use client";
 
 import Spline from "@splinetool/react-spline";
-import { Content, Header } from "../page";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -11,7 +10,6 @@ export default function Home() {
 
   return (
     <>
-      <Header />
       <main className="relative">
         <Switch
           checked={isGrayscale}
@@ -30,7 +28,6 @@ export default function Home() {
           className={cn("w-full h-svh fixed opacity-50", isGrayscale && "grayscale")}
         />
       </main>
-      <Content />
     </>
   );
 }
