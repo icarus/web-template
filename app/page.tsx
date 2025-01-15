@@ -37,7 +37,7 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % imageSources.length);
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -133,9 +133,9 @@ const Content = () => {
   return (
     <>
       <div className="text-white md:text-center z-10 h-full absolute top-0 p-4 w-full items-center justify-center flex flex-col gap-8">
-        <h1 className="text-3xl md:text-5xl font-medium">Acelera tu startup en LatAm.</h1>
-        <p className="opacity-70 text-sm max-w-lg">
-          Platanus es una startup de capital privado que invierte en founders de LatAm. Invertimos $200K USD por el 5,5% de tu startup, conecta con los mejores founders de LatAm, y haz crecer tu idea.
+        <h1 className="text-3xl md:text-5xl font-medium">No se qué poner aquí, y tú?</h1>
+        <p className="opacity-70 text-sm max-w-sm">
+          Invertimos $200K USD por el 5,5% de tu startup, conecta con los mejores founders de LatAm, y haz crecer tu idea.
         </p>
 
         {/* <div className="font-mono shadow-2xl mt-8 flex w-fit bg-white/5 backdrop-blur-sm border *:border-0 border-white/10 rounded-xl px-12 p-8">
