@@ -33,6 +33,9 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
       (gltf) => {
         scene.add(gltf.scene);
         gltf.scene.position.set(0, 0, 1.5);
+        // Ensure the model is stored for rotation
+        const model = gltf.scene;
+        animate(model); // Pass the model to the animate function
       },
       undefined,
       (error) => {
@@ -70,6 +73,8 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
       );
 
       const colors = [];
+      const lightnessValues: number[] = []; // Array to store lightness values
+
       for (let i = 0; i < pixelData.length; i += 4) {
         const r = pixelData[i];
         const g = pixelData[i + 1];
@@ -77,8 +82,9 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
         const a = pixelData[i + 3];
 
         const lightness = rgbToLightness(r, g, b);
-
-        console.log(lightness);
+        if (lightness > 0) { // Only include non-zero lightness values
+          lightnessValues.push(lightness); // Store lightness value
+        }
 
         let assignedColor = "rgba(0, 0, 0, 1)";
         if (lightness === 0) {
@@ -97,8 +103,11 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
     };
 
     // Animation loop
-    const animate = () => {
-      requestAnimationFrame(animate);
+    const animate = (model: THREE.Group) => { // Accept model as a parameter
+      requestAnimationFrame(() => animate(model)); // Recursive call
+
+      // Rotate the model around its Y-axis
+      model.rotation.y += 0.05; // Adjust the rotation speed as needed
 
       // Render the scene to the render target
       renderer.setRenderTarget(renderTarget);
@@ -113,7 +122,6 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
       // Render the main scene
       renderer.render(scene, camera);
     };
-    animate();
 
     // Clean up
     return () => {
@@ -128,7 +136,7 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
       <canvas ref={canvasRef} className="hidden absolute top-0 left-0 w-full h-full" />
       {/* Pixelated Grid */}
       <div
-        className="absolute top-0 left-0 grid w-full h-full rotate-180"
+        className="absolute top-0 left-0 grid w-full h-full scale-x-[-1] rotate-180"
         style={{
           gridTemplateColumns: `repeat(64, 1fr)`,
           pointerEvents: "none",
