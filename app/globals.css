@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,6 +6,23 @@ body {
   @apply underline-offset-2;
   font-family: var(--font-sans);
 }
+
+.bg-dither {
+  background-image:
+    radial-gradient(circle, rgba(255, 236, 64, 1) 0%, rgba(255, 236, 64, 1) 75%, black 75%, black 100%);
+  background-size: 8px 8px;
+  opacity: 1;
+  mix-blend-mode: overlay;
+}
+
+.bg-dither-2 {
+  background-image:
+    radial-gradient(circle, rgba(255, 236, 64, 1) 0%, rgba(255, 236, 64, 1) 30%, black 30%, black 100%);
+  background-size: 10px 10px;
+  opacity: 1;
+  mix-blend-mode: overlay;
+}
+
 
 @media (prefers-color-scheme: dark) {
   :root {

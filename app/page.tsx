@@ -50,7 +50,8 @@ export default function Home() {
           alt={`Image ${currentImageIndex + 1}`}
           width={1920}
           height={1080}
-          className="w-full h-full object-cover pointer-events-auto select-none"
+          quality={100}
+          className="w-full h-full object-cover pointer-events-auto select-none saturate-200 brightness-100"
         />
       </div>
     </main>
@@ -58,35 +59,38 @@ export default function Home() {
 }
 
 
-const Header = () => {
+export const Header = () => {
   return (
-    <header className="z-[999] left-1/2 -translate-x-1/2 bg-gradient-to-b from-black/60 absolute top-0 items-center mx-auto max-w-screen-xl px-2 md:px-16 h-16 *:h-full flex justify-between w-screen border-t border-white/5">
-      <Link href="/" className="flex items-center gap-2">
-        <Image
-          src="/logo.svg"
-          alt="Logo Platanus"
-          width={128}
-          height={24}
-        />
-      </Link>
+    <>
+      <header className="z-[999] left-1/2 -translate-x-1/2 absolute top-0 items-center mx-auto max-w-screen-xl px-2 md:px-16 h-16 *:h-full flex justify-between w-screen border-t border-white/5">
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/logo.svg"
+            alt="Logo Platanus"
+            width={128}
+            height={24}
+          />
+        </Link>
 
-      <div className="text-yellow-300 flex items-center gap-2">
-        <ScrambleHover
-          text="Postula"
-          className={cn(
-            "underline text-base cursor-pointer",
-          )}
-        />
-        <div className="relative">
-          <div className="flex size-1.5 bg-yellow-300" />
-          <div className="flex size-1.5 bg-yellow-300 absolute top-0 left-0 animate-ping" />
+        <div className="text-yellow-300 flex items-center gap-2">
+          <ScrambleHover
+            text="Postula"
+            className={cn(
+              "underline text-base cursor-pointer",
+            )}
+          />
+          <div className="relative">
+            <div className="flex size-1.5 bg-yellow-300" />
+            <div className="flex size-1.5 bg-yellow-300 absolute top-0 left-0 animate-ping" />
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      <div className="z-0 absolute h-32 w-screen bg-gradient-to-b from-black/60" />
+    </>
   );
 };
 
-const Content = () => {
+export const Content = () => {
   // const [daysLeft, setDaysLeft] = useState(25);
   // const [hoursLeft, setHoursLeft] = useState(4);
   // const [minutesLeft, setMinutesLeft] = useState(20);
@@ -130,7 +134,7 @@ const Content = () => {
     <>
       <div className="text-white md:text-center z-10 h-full absolute top-0 p-4 w-full items-center justify-center flex flex-col gap-8">
         <h1 className="text-3xl md:text-5xl font-medium">No se qué poner aquí, y tú?</h1>
-        <p className="opacity-70 text-sm max-w-sm">
+        <p className="text-sm max-w-sm">
           Invertimos $200K USD por el 5,5% de tu startup, conecta con los mejores founders de LatAm, y haz crecer tu idea.
         </p>
 
@@ -206,7 +210,7 @@ const Content = () => {
           </li>
         ))}
       </ul>
-      <div className="absolute inset-96 bg-black/80 blur-3xl rounded-3xl from-black/60" />
+      <div className="absolute inset-96 min-w-96 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 blur-3xl rounded-3xl" />
     </>
   );
 };

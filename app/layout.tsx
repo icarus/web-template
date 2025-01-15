@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import type { Metadata } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils"
+import CustomCursor from "@/components/shared/custom-cursor";
 
 const vcr = localFont({
   src: "../fonts/VCR_OSD_MONO.ttf",
@@ -35,6 +36,7 @@ export default async function RootLayout({
         )}
       >
         <main>
+          <CustomCursor />
           {children}
         </main>
       </body>
