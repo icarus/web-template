@@ -40,7 +40,7 @@ const LetterSwapForward = ({
     setBlocked(true)
 
     // Function to merge user transition with stagger and delay
-    const mergeTransition = (baseTransition: DynamicAnimationOptions) => ({
+    const mergeTransition = (baseTransition: AnimationOptions) => ({
       ...baseTransition,
       delay: stagger(staggerDuration, {
         from: staggerFrom,
