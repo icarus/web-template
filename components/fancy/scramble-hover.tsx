@@ -32,7 +32,7 @@ const ScrambleHover: React.FC<ScrambleHoverProps> = ({
   const [displayText, setDisplayText] = useState(text)
   const [isHovering, setIsHovering] = useState(false)
   const [isScrambling, setIsScrambling] = useState(false)
-  const [revealedIndices, setRevealedIndices] = useState(new Set<number>())
+  const [revealedIndices,] = useState(new Set<number>())
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -148,16 +148,7 @@ const ScrambleHover: React.FC<ScrambleHoverProps> = ({
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [
-    isHovering,
-    text,
-    characters,
-    scrambleSpeed,
-    useOriginalCharsOnly,
-    sequential,
-    revealDirection,
-    maxIterations,
-  ])
+  }, [isHovering, text, characters, scrambleSpeed, useOriginalCharsOnly, sequential, revealDirection, maxIterations, revealedIndices])
 
   return (
     <motion.span
