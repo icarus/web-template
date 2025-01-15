@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
@@ -10,6 +10,7 @@ interface ModelViewerProps {
 
 export function ModelViewer({ modelPath }: ModelViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [pixelColors, setPixelColors] = useState<{ r: number; g: number; b: number; a: number; assignedColor: string }[]>([]);
 
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -42,24 +43,20 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
     camera.position.z = 5;
 
     // Pixelation: Setup Render Target
-    const renderTarget = new THREE.WebGLRenderTarget(128, 128, {
+    const textureSize = 64; // Smaller size for the grid
+    const renderTarget = new THREE.WebGLRenderTarget(textureSize, textureSize, {
       minFilter: THREE.NearestFilter,
       magFilter: THREE.NearestFilter,
     });
 
-    renderTarget.texture.minFilter = THREE.NearestFilter;
-    renderTarget.texture.magFilter = THREE.NearestFilter;
+    const pixelData = new Uint8Array(textureSize * textureSize * 4); // RGBA for each pixel
 
-    // Full-Screen Quad for pixelated output
-    const quadMaterial = new THREE.MeshBasicMaterial({ map: renderTarget.texture });
-    const quadGeometry = new THREE.PlaneGeometry(2, 2);
-    const quad = new THREE.Mesh(quadGeometry, quadMaterial);
-
-    const quadScene = new THREE.Scene();
-    const quadCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    quadScene.add(quad);
-
-    const pixelData = new Uint8Array(128 * 128 * 4); // RGBA for each pixel
+    // Convert RGB to Lightness
+    const rgbToLightness = (r: number, g: number, b: number) => {
+      const max = Math.max(r, g, b) / 255;
+      const min = Math.min(r, g, b) / 255;
+      return (max + min) / 2; // Lightness formula from HSL
+    };
 
     // Function to read pixel colors
     const readPixelColors = () => {
@@ -67,21 +64,36 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
         renderTarget,
         0,
         0,
-        128,
-        128,
+        textureSize,
+        textureSize,
         pixelData
       );
 
       const colors = [];
       for (let i = 0; i < pixelData.length; i += 4) {
-        colors.push({
-          r: pixelData[i],
-          g: pixelData[i + 1],
-          b: pixelData[i + 2],
-          a: pixelData[i + 3],
-        });
+        const r = pixelData[i];
+        const g = pixelData[i + 1];
+        const b = pixelData[i + 2];
+        const a = pixelData[i + 3];
+
+        const lightness = rgbToLightness(r, g, b);
+
+        console.log(lightness);
+
+        let assignedColor = "rgba(0, 0, 0, 1)";
+        if (lightness === 0) {
+          assignedColor = "rgba(0, 0, 0, 1)";
+        } else if (lightness < 0.1) {
+          assignedColor = "rgba(113, 63, 18, 1)";
+        } else if (lightness < 0.2) {
+          assignedColor = "rgba(249, 188, 18, 1)";
+        } else {
+          assignedColor = "rgba(255, 236, 64, 1)";
+        }
+
+        colors.push({ r, g, b, a, assignedColor });
       }
-      console.log("Pixel Colors:", colors);
+      setPixelColors(colors);
     };
 
     // Animation loop
@@ -93,13 +105,13 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
       renderer.render(scene, camera);
       renderer.setRenderTarget(null);
 
-      // Render the quad with the pixelated texture
-      renderer.render(quadScene, quadCamera);
-
-      // Read pixel colors periodically (e.g., every 60 frames)
+      // Read pixel colors once per second
       if (Math.floor(performance.now() / 1000) % 1 === 0) {
         readPixelColors();
       }
+
+      // Render the main scene
+      renderer.render(scene, camera);
     };
     animate();
 
@@ -110,5 +122,28 @@ export function ModelViewer({ modelPath }: ModelViewerProps) {
     };
   }, [modelPath]);
 
-  return <canvas ref={canvasRef} className="w-full h-svh fixed" />;
+  return (
+    <div className="relative w-full h-screen">
+      {/* Canvas */}
+      <canvas ref={canvasRef} className="hidden absolute top-0 left-0 w-full h-full" />
+      {/* Pixelated Grid */}
+      <div
+        className="absolute top-0 left-0 grid w-full h-full rotate-180"
+        style={{
+          gridTemplateColumns: `repeat(64, 1fr)`,
+          pointerEvents: "none",
+        }}
+      >
+        {pixelColors.map((color, index) => (
+          <div
+            key={index}
+            className="w-1/3 aspect-square saturate-150"
+            style={{
+              backgroundColor: color.assignedColor,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
