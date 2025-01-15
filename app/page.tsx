@@ -1,10 +1,6 @@
 "use client";
 
-import PixelTrail from "@/components/animated/pixel-trail";
-import { RippleBackground } from "@/components/animated/ripple";
 import ScrambleHover from "@/components/fancy/scramble-hover";
-import LetterSwapForward from "@/components/fancy/swap-text";
-import Backdrop from "@/components/layout/backdrop";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -91,44 +87,44 @@ const Header = () => {
 };
 
 const Content = () => {
-  const [daysLeft, setDaysLeft] = useState(25);
-  const [hoursLeft, setHoursLeft] = useState(4);
-  const [minutesLeft, setMinutesLeft] = useState(20);
-  const [secondsLeft, setSecondsLeft] = useState(40);
+  // const [daysLeft, setDaysLeft] = useState(25);
+  // const [hoursLeft, setHoursLeft] = useState(4);
+  // const [minutesLeft, setMinutesLeft] = useState(20);
+  // const [secondsLeft, setSecondsLeft] = useState(40);
 
-  const padWithZero = (number: number) => number.toString().padStart(2, '0');
+  // const padWithZero = (number: number) => number.toString().padStart(2, '0');
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setDaysLeft((prevDays) => (prevDays > 0 ? prevDays - 1 : 0));
-    }, 86400000); // 86400000 ms = 1 day
+  // useEffect(() => {
+  //   const timer = setInterval(() => {
+  //     setDaysLeft((prevDays) => (prevDays > 0 ? prevDays - 1 : 0));
+  //   }, 86400000); // 86400000 ms = 1 day
 
-    return () => clearInterval(timer);
-  }, []);
+  //   return () => clearInterval(timer);
+  // }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHoursLeft((prevHours) => (prevHours < 23 ? prevHours - 1 : 0));
-    }, 3600000); // 3600000 ms = 1 hour
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setHoursLeft((prevHours) => (prevHours < 23 ? prevHours - 1 : 0));
+  //   }, 3600000); // 3600000 ms = 1 hour
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMinutesLeft((prevMinutes) => (prevMinutes < 59 ? prevMinutes - 1 : 0));
-    }, 60000); // 60000 ms = 1 minute
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setMinutesLeft((prevMinutes) => (prevMinutes < 59 ? prevMinutes - 1 : 0));
+  //   }, 60000); // 60000 ms = 1 minute
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSecondsLeft((prevSeconds) => (prevSeconds < 59 ? prevSeconds - 1 : 0));
-    }, 1000); // 1000 ms = 1 second
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setSecondsLeft((prevSeconds) => (prevSeconds < 59 ? prevSeconds - 1 : 0));
+  //   }, 1000); // 1000 ms = 1 second
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   return (
     <>
