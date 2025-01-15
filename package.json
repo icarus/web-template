@@ -16,6 +16,7 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@react-three/fiber": "^8.17.12",
+    "@splinetool/loader": "^1.9.59",
     "@splinetool/react-spline": "^4.0.0",
     "@splinetool/runtime": "^1.9.58",
     "@tsparticles/engine": "^3.7.1",

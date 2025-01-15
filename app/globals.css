@@ -23,6 +23,10 @@ body {
   mix-blend-mode: overlay;
 }
 
+canvas {
+  image-rendering: pixelated;
+}
+
 
 @media (prefers-color-scheme: dark) {
   :root {
