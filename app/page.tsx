@@ -1,29 +1,8 @@
 "use client";
 
-import ScrambleHover from "@/components/fancy/scramble-hover";
-import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useEffect } from "react";
-
-const links = [
-  {
-    title: "Programa",
-    href: "/",
-  },
-  {
-    title: "Portafolio",
-    href: "/",
-  },
-  {
-    title: "Plata-news",
-    href: "/",
-  },
-  {
-    title: "Postula",
-    href: "/",
-  },
-];
 
 const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
 
@@ -33,15 +12,27 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % imageSources.length);
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
     <main className="font-sans w-screen h-svh overflow-hidden">
-      <Header />
-
+      <div className="mx-auto max-w-screen-xl py-2 absolute flex flex-col justify-between inset-0">
+        <hr className="absolute inset-y-0 w-px h-full bg-neutral-700 ml-2 border-0" />
+        <hr className="absolute inset-y-0 right-0 w-px h-full bg-neutral-700 mr-2 border-0" />
+        <div className="relative flex w-full justify-between">
+          <X className="size-4 rotate-45 stroke-1 z-10" />
+          <hr className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-screen h-px bg-neutral-700 border-0" />
+          <X className="size-4 rotate-45 stroke-1 z-10" />
+        </div>
+        <div className="relative flex w-full justify-between">
+          <X className="size-4 rotate-45 stroke-1 z-10" />
+          <hr className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-screen h-px bg-neutral-700 border-0" />
+          <X className="size-4 rotate-45 stroke-1 z-10" />
+        </div>
+      </div>
       <Content />
 
       <div className="absolute -z-10 w-screen h-screen">
@@ -58,78 +49,7 @@ export default function Home() {
   );
 }
 
-
-const Header = () => {
-  return (
-    <>
-      <header className="z-[999] left-1/2 -translate-x-1/2 absolute top-0 items-center mx-auto max-w-screen-xl px-2 md:px-16 h-16 *:h-full flex justify-between w-screen border-t border-white/5">
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/logo.svg"
-            alt="Logo Platanus"
-            width={128}
-            height={24}
-          />
-        </Link>
-
-        <div className="text-yellow-300 flex items-center gap-2">
-          <ScrambleHover
-            text="Postula"
-            className={cn(
-              "underline text-base cursor-pointer",
-            )}
-          />
-          <div className="relative">
-            <div className="flex size-1.5 bg-yellow-300" />
-            <div className="flex size-1.5 bg-yellow-300 absolute top-0 left-0 animate-ping" />
-          </div>
-        </div>
-      </header>
-      <div className="z-0 absolute h-32 w-screen bg-gradient-to-b from-black/60" />
-    </>
-  );
-};
-
-const Content = () => {
-  // const [daysLeft, setDaysLeft] = useState(25);
-  // const [hoursLeft, setHoursLeft] = useState(4);
-  // const [minutesLeft, setMinutesLeft] = useState(20);
-  // const [secondsLeft, setSecondsLeft] = useState(40);
-
-  // const padWithZero = (number: number) => number.toString().padStart(2, '0');
-
-  // useEffect(() => {
-  //   const timer = setInterval(() => {
-  //     setDaysLeft((prevDays) => (prevDays > 0 ? prevDays - 1 : 0));
-  //   }, 86400000); // 86400000 ms = 1 day
-
-  //   return () => clearInterval(timer);
-  // }, []);
-
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setHoursLeft((prevHours) => (prevHours < 23 ? prevHours - 1 : 0));
-  //   }, 3600000); // 3600000 ms = 1 hour
-
-  //   return () => clearInterval(interval);
-  // }, []);
-
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setMinutesLeft((prevMinutes) => (prevMinutes < 59 ? prevMinutes - 1 : 0));
-  //   }, 60000); // 60000 ms = 1 minute
-
-  //   return () => clearInterval(interval);
-  // }, []);
-
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setSecondsLeft((prevSeconds) => (prevSeconds < 59 ? prevSeconds - 1 : 0));
-  //   }, 1000); // 1000 ms = 1 second
-
-  //   return () => clearInterval(interval);
-  // }, []);
-
+export const Content = () => {
   return (
     <>
       <div className="text-white md:text-center z-10 h-full absolute top-0 p-4 w-full items-center justify-center flex flex-col gap-8">
@@ -137,80 +57,8 @@ const Content = () => {
         <p className="text-sm max-w-sm">
           Invertimos $200K USD por el 5,5% de tu startup, conecta con los mejores founders de LatAm, y haz crecer tu idea.
         </p>
-
-        {/* <div className="font-mono shadow-2xl mt-8 flex w-fit bg-white/5 backdrop-blur-sm border *:border-0 border-white/10 rounded-xl px-12 p-8">
-          <div className="flex flex-col items-center gap-1">
-            <LetterSwapForward
-              label={padWithZero(daysLeft)}
-              className={cn(
-                "text-4xl",
-              )}
-            />
-            <span className="text-sm font-mono uppercase">
-              Días
-            </span>
-          </div>
-          <hr className="mx-12 my-auto w-px h-1/2 bg-white/20" />
-          <div className="flex flex-col items-center gap-1">
-            <LetterSwapForward
-              label={padWithZero(hoursLeft)}
-              className={cn(
-                "text-4xl",
-              )}
-            />
-            <span className="text-sm font-mono uppercase">
-              Horas
-            </span>
-          </div>
-          <hr className="mx-12 my-auto w-px h-1/2 bg-white/20" />
-          <div className="flex flex-col items-center gap-1">
-            <LetterSwapForward
-              label={padWithZero(minutesLeft)}
-              className={cn(
-                "text-4xl",
-              )}
-            />
-            <span className="text-sm font-mono uppercase">
-              Minutos
-            </span>
-          </div>
-          <hr className="mx-12 my-auto w-px h-1/2 bg-white/20" />
-          <div className="flex flex-col items-center gap-1">
-            <LetterSwapForward
-              label={padWithZero(secondsLeft)}
-              className={cn(
-                "text-4xl",
-              )}
-            />
-            <span className="text-sm font-mono uppercase">
-              Segundos
-            </span>
-          </div>
-        </div> */}
       </div>
-      <ul className="z-10 absolute bottom-0 w-screen p-8 bg-gradient-to-t from-black/60 flex gap-8 items-center justify-center">
-        {links.map((link, index) => (
-          <li
-            key={index}
-            className="flex items-center gap-2"
-          >
-            <ScrambleHover
-              text={link.title}
-              className={cn(
-                "underline text-base cursor-pointer",
-                index === links.length - 1 && "text-yellow-300"
-              )}
-            />
-            {index === links.length - 1 && (
-              <div className="relative">
-                <div className="flex size-1.5 bg-yellow-300" />
-                <div className="flex size-1.5 bg-yellow-300 absolute top-0 left-0 animate-ping" />
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-      <div className="absolute inset-96 min-w-96 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 blur-3xl rounded-3xl" />
+      <div className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 absolute w-1/4 aspect-square z-0 bg-black/60 rounded-full blur-[128px]" />
     </>
   );
 };

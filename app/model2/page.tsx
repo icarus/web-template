@@ -1,4 +1,4 @@
-import { ModelViewer } from "../model/modelViewer";
+import { ModelViewer } from "../4/modelViewer";
 
 export default function Model2() {
   return (
