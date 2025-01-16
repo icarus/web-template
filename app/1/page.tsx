@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Content } from "../page";
+import { Content } from "@/components/shared/content";
 import FrameOverlay from "@/components/shared/frame-overlay";
 
 const imageSources = ["/gif2.gif"];
@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <main className="font-sans w-screen h-svh overflow-hidden">
       <Content />
-      
+
       <FrameOverlay />
 
       <div className="absolute -z-10 w-screen h-screen">

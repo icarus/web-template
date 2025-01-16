@@ -1,5 +1,5 @@
 import Spline from "@splinetool/react-spline";
-import { Content } from "../page";
+import { Content } from "@/components/shared/content";
 import FrameOverlay from "@/components/shared/frame-overlay";
 
 export default function Home() {
