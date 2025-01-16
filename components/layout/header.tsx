@@ -14,6 +14,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 import { Button } from "@/components/ui/button";
+import Menu from "./menu";
 
 export default function Header() {
   const [isVisible, setIsVisible] = useState(true);
@@ -47,15 +48,15 @@ export default function Header() {
     <>
       <div
         className={cn(
-          "absolute -translate-x-1/2 left-1/2 top-4 flex items-center justify-center mx-auto max-w-screen-xl w-full z-50 h-16 transition-transform duration-300",
+          "absolute -translate-x-1/2 left-1/2 top-2 md:top-4 flex items-center justify-center mx-auto max-w-screen-xl w-full z-50 h-16 transition-transform duration-300",
           isVisible ? "translate-y-0" : "-translate-y-full"
         )}
       >
-        <header className="px-8 flex w-full items-center justify-between max-w-screen-xl">
+        <header className="flex pr-4 pl-6 md:px-6 w-full items-center justify-between max-w-screen-xl">
           <Link href="/">
             <Image src="/logo.svg" alt="Logo" width={128} height={24} />
           </Link>
-          <NavigationMenu>
+          <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
               <Link href="#" legacyBehavior passHref>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}>
@@ -148,9 +149,10 @@ export default function Header() {
               </NavigationMenuItem> */}
             </NavigationMenuList>
           </NavigationMenu>
-          <Button size="sm" variant="white">
+          <Button size="sm" variant="white" className="hidden md:flex">
             Postula
           </Button>
+          <Menu />
         </header>
       </div>
       <div className="absolute w-screen h-24 bg-gradient-to-b from-black inset-x-0 top-0" />

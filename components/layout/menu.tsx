@@ -8,7 +8,7 @@ export default function Menu() {
 
   return (
     <Button
-      className="group hover:bg-transparent [&_svg]:size-8"
+      className="flex justify-center items-center group md:hidden hover:bg-transparent [&_svg]:size-8"
       variant="ghost"
       size="icon"
       onClick={() => setOpen((prevState) => !prevState)}
@@ -16,7 +16,7 @@ export default function Menu() {
       aria-label={open ? "Close menu" : "Open menu"}
     >
       <svg
-        className="pointer-events-none"
+        className="pointer-events-none flex items-center justify-center"
         width={48}
         height={16}
         viewBox="0 0 32 16"
@@ -27,11 +27,11 @@ export default function Menu() {
       >
         <path
           d="M4 6H20"
-          className="origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] group-aria-expanded:rotate-45"
+          className="mx-auto origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] group-aria-expanded:rotate-45"
         />
         <path
           d="M4 10H20"
-          className="translate-y-0 origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] group-aria-expanded:-translate-y-[8.5px] group-aria-expanded:-rotate-45"
+          className="mx-auto translate-y-0 origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] group-aria-expanded:-translate-y-[8.5px] group-aria-expanded:-rotate-45"
         />
       </svg>
     </Button>

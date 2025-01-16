@@ -4,12 +4,18 @@ import Spline from "@splinetool/react-spline";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import FrameOverlay from "@/components/shared/frame-overlay";
+import { Content } from "../page";
 
 export default function Home() {
   const [isGrayscale, setIsGrayscale] = useState(false);
 
   return (
     <>
+      <FrameOverlay />
+
+      <Content />
+
       <main className="relative">
         <Switch
           checked={isGrayscale}

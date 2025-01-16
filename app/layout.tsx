@@ -32,7 +32,7 @@ export default async function RootLayout({
         className={cn(
           vcr.variable,
           ubuntu.variable,
-          "font-sans antialiased w-screen h-svh overflow-hidden"
+          "font-sans antialiased w-screen min-h-svh overflow-hidden"
         )}
       >
         <main>

@@ -1,8 +1,9 @@
 "use client";
 
-import { X } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import FrameOverlay from "@/components/shared/frame-overlay";
 
 const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
 
@@ -18,22 +19,10 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="font-sans w-screen h-svh overflow-hidden">
-      <div className="mx-auto max-w-screen-xl py-2 absolute flex flex-col justify-between inset-0">
-        <hr className="absolute inset-y-0 w-px h-full bg-neutral-700 ml-2 border-0" />
-        <hr className="absolute inset-y-0 right-0 w-px h-full bg-neutral-700 mr-2 border-0" />
-        <div className="relative flex w-full justify-between">
-          <X className="size-4 rotate-45 stroke-1 z-10" />
-          <hr className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-screen h-px bg-neutral-700 border-0" />
-          <X className="size-4 rotate-45 stroke-1 z-10" />
-        </div>
-        <div className="relative flex w-full justify-between">
-          <X className="size-4 rotate-45 stroke-1 z-10" />
-          <hr className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-screen h-px bg-neutral-700 border-0" />
-          <X className="size-4 rotate-45 stroke-1 z-10" />
-        </div>
-      </div>
+    <main className="font-sans w-screen h-svh max-h-screen overflow-hidden">
       <Content />
+
+      <FrameOverlay />
 
       <div className="absolute -z-10 w-screen h-screen">
         <Image
@@ -52,13 +41,24 @@ export default function Home() {
 export const Content = () => {
   return (
     <>
-      <div className="text-white md:text-center z-10 h-full absolute top-0 p-4 w-full items-center justify-center flex flex-col gap-8">
-        <h1 className="text-3xl md:text-5xl font-medium">No se qué poner aquí, y tú?</h1>
+      <div className="text-white text-center z-10 h-full absolute top-0 p-8 w-full items-center justify-center flex flex-col gap-8">
+        <h1 className="text-4xl md:text-5xl font-medium">No se qué poner aquí, y tú?</h1>
         <p className="text-sm max-w-sm">
           Invertimos $200K USD por el 5,5% de tu startup, conecta con los mejores founders de LatAm, y haz crecer tu idea.
         </p>
       </div>
-      <div className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 absolute w-1/4 aspect-square z-0 bg-black/60 rounded-full blur-[128px]" />
+      <div className="flex gap-6 w-full justify-center absolute bottom-0 p-6 md:p-10 md:hidden underline bg-gradient-to-t from-black to-transparent">
+        <Link href="/">
+          Programa
+        </Link>
+        <Link href="/">
+          Portafolio
+        </Link>
+        <Link href="/">
+          Blog
+        </Link>
+      </div>
+      <div className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 absolute w-96 md:w-1/4 aspect-square z-0 bg-black/60 rounded-full blur-[128px]" />
     </>
   );
 };
