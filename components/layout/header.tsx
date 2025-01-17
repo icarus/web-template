@@ -149,7 +149,7 @@ export default function Header() {
               </NavigationMenuItem> */}
             </NavigationMenuList>
           </NavigationMenu>
-          <Button size="sm" variant="white" className="hidden md:flex">
+          <Button variant="white" className="hidden md:flex">
             Postula
           </Button>
           <Menu />
