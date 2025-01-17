@@ -6,7 +6,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 interface ModelViewerProps {
   modelPath: string;
-  gradient?: string[];
+  colors?: string[];
   samplingRate?: number;
   maxResolution?: number;
 }
@@ -21,17 +21,18 @@ interface PixelColor {
 
 export function ModelViewer({
   modelPath,
-  gradient = ["#000000", "#FFD82C", "#3E2723", "#F57C00", "#FFD700"],
+  colors = ["#000000", "#3E2723", "#F57C00", "#FFD700"],
   samplingRate = 100,
   maxResolution = 96
 }: ModelViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [pixelColors, setPixelColors] = useState<PixelColor[]>([]);
+  const prevColorsRef = useRef<PixelColor[]>([]);
   const rotationRef = useRef<number>(0);
   const lastSampleTime = useRef<number>(0);
   const frameRef = useRef<number>(0);
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const renderTargetRef = useRef<THREE.WebGLRenderTarget | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -82,28 +83,87 @@ export function ModelViewer({
     return (max + min) / 2;
   }, []);
 
-  const mapLightnessToGradient = useCallback((lightness: number) => {
-    // Black (0-2%)
-    if (lightness === 0) return gradient[0];
+  const mapLightnessToColor = useCallback((lightness: number) => {
 
-    // Dark brown (2-10%)
-    if (lightness < 0.05) return gradient[1];
+    if (lightness === 0) return colors[0];
+    if (lightness < 0.05) return colors[1];
+    if (lightness < 0.12) return colors[2];
+    return colors[3];
+  }, [colors]);
 
-    // Mid yellow (10-30%)
-    if (lightness < 0.06) return gradient[2];
+  const readPixelColors = useCallback(() => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !renderTargetRef.current) return;
 
-    // Orange (30-50%)
-    if (lightness < 0.11) return gradient[3];
+    const pixelData = new Uint8Array(resolution * resolution * 4);
+    rendererRef.current.setRenderTarget(renderTargetRef.current);
+    rendererRef.current.render(sceneRef.current, cameraRef.current);
+    rendererRef.current.readRenderTargetPixels(renderTargetRef.current, 0, 0, resolution, resolution, pixelData);
+    rendererRef.current.setRenderTarget(null);
 
-    // Bright yellow (50-100%)
-    return gradient[4];
-  }, [gradient]);
+    const newColors: PixelColor[] = new Array(resolution * resolution);
+    let blackPixelCount = 0;
+
+    for (let i = 0; i < pixelData.length; i += 4) {
+      const index = i >> 2;
+      const r = pixelData[i];
+      const g = pixelData[i + 1];
+      const b = pixelData[i + 2];
+      const a = pixelData[i + 3];
+
+      const lightness = rgbToLightness(r, g, b);
+      if (lightness < 0.05) blackPixelCount++;
+
+      newColors[index] = {
+        r, g, b, a,
+        assignedColor: mapLightnessToColor(lightness)
+      };
+    }
+
+    // If more than 90% of pixels are black, keep the previous colors
+    if (blackPixelCount > (resolution * resolution * 0.9) && prevColorsRef.current.length > 0) {
+      return;
+    }
+
+    prevColorsRef.current = newColors;
+    setPixelColors(newColors);
+  }, [resolution, mapLightnessToColor, rgbToLightness]);
+
+  const animate = useCallback((model: THREE.Group) => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+
+    frameRef.current = requestAnimationFrame(() => animate(model));
+
+    // Optimized rotation
+    rotationRef.current = (rotationRef.current + 0.01) % (Math.PI * 2);
+    model.rotation.y = rotationRef.current;
+
+    const currentTime = performance.now();
+    const timeSinceLastSample = currentTime - lastSampleTime.current;
+
+    // Ensure we're not sampling too frequently
+    if (timeSinceLastSample >= samplingRate) {
+      readPixelColors();
+      lastSampleTime.current = currentTime;
+    }
+
+    rendererRef.current.render(sceneRef.current, cameraRef.current);
+  }, [samplingRate, readPixelColors]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 5;
+    const camera = new THREE.OrthographicCamera(
+      (frustumSize * aspect) / -2,
+      (frustumSize * aspect) / 2,
+      frustumSize / 2,
+      frustumSize / -2,
+      -1000,
+      1000
+    );
+
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
       powerPreference: 'high-performance',
@@ -116,10 +176,23 @@ export function ModelViewer({
     cameraRef.current = camera;
     rendererRef.current = renderer;
 
+    const handleWindowResize = () => {
+      if (!renderer || !camera) return;
+
+      const newAspect = window.innerWidth / window.innerHeight;
+      camera.left = (frustumSize * newAspect) / -2;
+      camera.right = (frustumSize * newAspect) / 2;
+      camera.top = frustumSize / 2;
+      camera.bottom = frustumSize / -2;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+
+    window.addEventListener('resize', handleWindowResize);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(1);
 
-    // Optimized render target
     const renderTarget = new THREE.WebGLRenderTarget(resolution, resolution, {
       minFilter: THREE.NearestFilter,
       magFilter: THREE.NearestFilter,
@@ -131,20 +204,23 @@ export function ModelViewer({
     });
     renderTargetRef.current = renderTarget;
 
-    // Optimized lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     const light = new THREE.DirectionalLight(0xffffff, 0.5);
     light.position.set(1, 1, 1).normalize();
     scene.add(light);
 
-    camera.position.z = 5;
+    // Add ambient light for even illumination
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
 
-    // Optimized model loading
+    camera.position.set(0, 0, 0);
+    camera.lookAt(0, 0, 0);
+
     const loader = new GLTFLoader();
     loader.load(
       modelPath,
       (gltf) => {
-        // Optimize geometry
+        gltf.scene.scale.set(1, 1, 1);
         gltf.scene.traverse((node) => {
           if (node instanceof THREE.Mesh) {
             node.geometry.computeBoundingSphere();
@@ -153,57 +229,15 @@ export function ModelViewer({
         });
 
         scene.add(gltf.scene);
-        gltf.scene.position.set(0, 0, 1.5);
+        gltf.scene.position.set(0, 0, 0);
         animate(gltf.scene);
       },
       undefined,
       console.error
     );
 
-    const readPixelColors = () => {
-      if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !renderTargetRef.current) return;
-
-      const pixelData = new Uint8Array(resolution * resolution * 4);
-      rendererRef.current.setRenderTarget(renderTargetRef.current);
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
-      rendererRef.current.readRenderTargetPixels(renderTargetRef.current, 0, 0, resolution, resolution, pixelData);
-      rendererRef.current.setRenderTarget(null);
-
-      const colors = new Array(resolution * resolution);
-      for (let i = 0; i < pixelData.length; i += 4) {
-        const index = i >> 2; // Faster division by 4
-        const r = pixelData[i];
-        const g = pixelData[i + 1];
-        const b = pixelData[i + 2];
-        const a = pixelData[i + 3];
-
-        colors[index] = a === 0
-          ? { r: 0, g: 0, b: 0, a: 0, assignedColor: 'transparent' }
-          : { r, g, b, a, assignedColor: mapLightnessToGradient(rgbToLightness(r, g, b)) };
-      }
-
-      setPixelColors(colors);
-    };
-
-    const animate = (model: THREE.Group) => {
-      if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
-
-      frameRef.current = requestAnimationFrame(() => animate(model));
-
-      // Optimized rotation
-      rotationRef.current = (rotationRef.current + 0.01) % (Math.PI * 2);
-      model.rotation.y = rotationRef.current;
-
-      const currentTime = performance.now();
-      if (currentTime - lastSampleTime.current >= samplingRate) {
-        readPixelColors();
-        lastSampleTime.current = currentTime;
-      }
-
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
-    };
-
     return () => {
+      window.removeEventListener('resize', handleWindowResize);
       if (frameRef.current) {
         cancelAnimationFrame(frameRef.current);
       }
@@ -218,15 +252,20 @@ export function ModelViewer({
         }
       });
     };
-  }, [modelPath, samplingRate, resolution, rgbToLightness, mapLightnessToGradient]);
+  }, [modelPath, resolution, animate]);
 
   return (
-    <div ref={containerRef} className="w-full h-screen overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden">
       <canvas ref={canvasRef} className="hidden absolute top-0 left-0 w-full h-full" />
       <div
-        className="grid gap-3 rotate-180 transform absolute top-1/2 -translate-y-1/2 w-full"
+        className="absolute top-0 left-0 w-full h-full scale-x-[-1] rotate-180"
         style={{
+          display: 'grid',
           gridTemplateColumns: `repeat(${resolution}, 1fr)`,
+          gap: '2px',
+          padding: '2px',
+          pointerEvents: "none",
+          willChange: 'transform',
           contain: 'layout paint style',
         }}
       >
