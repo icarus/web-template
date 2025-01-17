@@ -32,7 +32,7 @@ export default function Home() {
           width={1920}
           height={1080}
           quality={100}
-          className="md:w-full h-full scale-150 md:scale-100 object-contain md:object-cover pointer-events-auto select-none saturate-200 brightness-100"
+          className="md:w-full h-full scale-150 md:scale-100 object-contain md:object-cover pointer-events-auto select-none saturate-200"
         />
       </div>
     </main>

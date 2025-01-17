@@ -242,7 +242,7 @@ export function ModelViewer({
         {pixelColors.map((color, index) => (
           <div
             key={index}
-            className="aspect-square rounded-full transform-gpu"
+            className="aspect-square transform-gpu"
             style={{
               backgroundColor: color.assignedColor,
               opacity: color.a / 255,
