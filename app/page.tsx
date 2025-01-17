@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import FrameOverlay from "@/components/shared/frame-overlay";
 import { Content } from "@/components/shared/content";
 
-const imageSources = ["/Banana.gif"];
+const imageSources = ["/BananaOptimizado.gif"];
 // const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
 
 export default function Home() {
