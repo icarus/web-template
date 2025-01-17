@@ -21,7 +21,7 @@ interface PixelColor {
 
 export function ModelViewer({
   modelPath,
-  gradient = ["#000000", "#3E2723", "#F57C00", "#FFD700"],
+  gradient = ["#000000", "#FFD82C", "#3E2723", "#F57C00", "#FFD700"],
   samplingRate = 100,
   maxResolution = 96
 }: ModelViewerProps) {
@@ -83,10 +83,20 @@ export function ModelViewer({
   }, []);
 
   const mapLightnessToGradient = useCallback((lightness: number) => {
+    // Black (0-2%)
     if (lightness === 0) return gradient[0];
-    if (lightness < 0.02) return gradient[1];
-    if (lightness < 0.07) return gradient[2];
-    return gradient[3];
+
+    // Dark brown (2-10%)
+    if (lightness < 0.05) return gradient[1];
+
+    // Mid yellow (10-30%)
+    if (lightness < 0.06) return gradient[2];
+
+    // Orange (30-50%)
+    if (lightness < 0.11) return gradient[3];
+
+    // Bright yellow (50-100%)
+    return gradient[4];
   }, [gradient]);
 
   useEffect(() => {
