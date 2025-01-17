@@ -7,7 +7,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 interface ModelViewerProps {
   modelPath: string;
   colors?: string[];
-  samplingRate?: number;
   maxResolution?: number;
 }
 
@@ -22,8 +21,6 @@ interface PixelColor {
 export function ModelViewer({
   modelPath,
   colors = ["#000000", "#3E2723", "#F57C00", "#FFD700"],
-  samplingRate = 100,
-  maxResolution = 96
 }: ModelViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [pixelColors, setPixelColors] = useState<PixelColor[]>([]);
@@ -36,60 +33,15 @@ export function ModelViewer({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const renderTargetRef = useRef<THREE.WebGLRenderTarget | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const resizeTimeoutRef = useRef<number | null>(null);
-  const [resolution, setResolution] = useState<number>(48);
-
-  const calculateOptimalResolution = useCallback(() => {
-    if (!containerRef.current) return 48;
-    const { width, height } = containerRef.current.getBoundingClientRect();
-    const size = Math.min(width, height);
-    const devicePixelRatio = window.devicePixelRatio || 1;
-    const performanceMultiplier = devicePixelRatio > 1 ? 0.75 : 1;
-    const optimalRes = Math.min(
-      Math.floor((size / 10) * performanceMultiplier),
-      maxResolution
-    );
-    return Math.max(48, optimalRes);
-  }, [maxResolution]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (resizeTimeoutRef.current !== null) {
-        window.clearTimeout(resizeTimeoutRef.current);
-      }
-      resizeTimeoutRef.current = window.setTimeout(() => {
-        const newResolution = calculateOptimalResolution();
-        if (newResolution !== resolution) {
-          setResolution(newResolution);
-        }
-        resizeTimeoutRef.current = null;
-      }, 200);
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize();
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (resizeTimeoutRef.current !== null) {
-        window.clearTimeout(resizeTimeoutRef.current);
-      }
-    };
-  }, [calculateOptimalResolution, resolution]);
+  const resolution = 96;
+  const samplingRate = 16;
+  const rotationSpeed = 0.005;
 
   const rgbToLightness = useCallback((r: number, g: number, b: number) => {
     const max = Math.max(r, g, b) / 255;
     const min = Math.min(r, g, b) / 255;
     return (max + min) / 2;
   }, []);
-
-  const mapLightnessToColor = useCallback((lightness: number) => {
-
-    if (lightness === 0) return colors[0];
-    if (lightness < 0.05) return colors[1];
-    if (lightness < 0.12) return colors[2];
-    return colors[3];
-  }, [colors]);
 
   const readPixelColors = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !renderTargetRef.current) return;
@@ -103,44 +55,70 @@ export function ModelViewer({
     const newColors: PixelColor[] = new Array(resolution * resolution);
     let blackPixelCount = 0;
 
+    // First pass: collect all non-black lightness values
+    const lightnessValues: number[] = [];
+    for (let i = 0; i < pixelData.length; i += 4) {
+      const r = pixelData[i];
+      const g = pixelData[i + 1];
+      const b = pixelData[i + 2];
+      const lightness = rgbToLightness(r, g, b);
+
+      if (lightness > 0) {
+        lightnessValues.push(lightness);
+      }
+    }
+
+    const minLightness = Math.min(...lightnessValues);
+    const maxLightness = Math.max(...lightnessValues);
+    const lightnessRange = maxLightness - minLightness;
+
     for (let i = 0; i < pixelData.length; i += 4) {
       const index = i >> 2;
       const r = pixelData[i];
       const g = pixelData[i + 1];
       const b = pixelData[i + 2];
       const a = pixelData[i + 3];
-
       const lightness = rgbToLightness(r, g, b);
-      if (lightness < 0.05) blackPixelCount++;
 
-      newColors[index] = {
-        r, g, b, a,
-        assignedColor: mapLightnessToColor(lightness)
-      };
+      if (lightness === 0) {
+        blackPixelCount++;
+        newColors[index] = { r, g, b, a, assignedColor: colors[0] };
+      } else {
+        const normalizedLightness = (lightness - minLightness) / lightnessRange;
+
+        let assignedColor: string;
+        if (normalizedLightness < 0.33) {
+          assignedColor = colors[1];
+        } else if (normalizedLightness < 0.55) {
+          assignedColor = colors[2];
+        } else if (normalizedLightness > 0.55 && normalizedLightness < 0.62) {
+          assignedColor = colors[1];
+        } else {
+          assignedColor = colors[3];
+        }
+
+        newColors[index] = { r, g, b, a, assignedColor };
+      }
     }
 
-    // If more than 90% of pixels are black, keep the previous colors
     if (blackPixelCount > (resolution * resolution * 0.9) && prevColorsRef.current.length > 0) {
       return;
     }
 
     prevColorsRef.current = newColors;
     setPixelColors(newColors);
-  }, [resolution, mapLightnessToColor, rgbToLightness]);
+  }, [resolution, colors, rgbToLightness]);
 
   const animate = useCallback((model: THREE.Group) => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
 
     frameRef.current = requestAnimationFrame(() => animate(model));
-
-    // Optimized rotation
-    rotationRef.current = (rotationRef.current + 0.01) % (Math.PI * 2);
+    rotationRef.current = (rotationRef.current + rotationSpeed) % (Math.PI * 2);
     model.rotation.y = rotationRef.current;
 
     const currentTime = performance.now();
     const timeSinceLastSample = currentTime - lastSampleTime.current;
 
-    // Ensure we're not sampling too frequently
     if (timeSinceLastSample >= samplingRate) {
       readPixelColors();
       lastSampleTime.current = currentTime;
@@ -209,11 +187,7 @@ export function ModelViewer({
     light.position.set(1, 1, 1).normalize();
     scene.add(light);
 
-    // Add ambient light for even illumination
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-
-    camera.position.set(0, 0, 0);
+    camera.position.set(0, 0, 10);
     camera.lookAt(0, 0, 0);
 
     const loader = new GLTFLoader();
@@ -229,7 +203,7 @@ export function ModelViewer({
         });
 
         scene.add(gltf.scene);
-        gltf.scene.position.set(0, 0, 0);
+        gltf.scene.position.set(0, -0.5, 0);
         animate(gltf.scene);
       },
       undefined,
@@ -252,19 +226,15 @@ export function ModelViewer({
         }
       });
     };
-  }, [modelPath, resolution, animate]);
+  }, [modelPath, animate]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-svh overflow-hidden">
       <canvas ref={canvasRef} className="hidden absolute top-0 left-0 w-full h-full" />
       <div
-        className="absolute top-0 left-0 w-full h-full scale-x-[-1] rotate-180"
+        className="grid gap-2 p-2 pointer-events-none absolute top-0 left-0 w-full h-full scale-x-[-1] rotate-180"
         style={{
-          display: 'grid',
           gridTemplateColumns: `repeat(${resolution}, 1fr)`,
-          gap: '2px',
-          padding: '2px',
-          pointerEvents: "none",
           willChange: 'transform',
           contain: 'layout paint style',
         }}
