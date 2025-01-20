@@ -48,8 +48,9 @@ export default function Header() {
     <>
       <div
         className={cn(
-          "absolute -translate-x-1/2 left-1/2 top-2 md:top-4 flex items-center justify-center mx-auto max-w-screen-xl w-full z-50 h-16 transition-transform duration-300",
-          isVisible ? "translate-y-0" : "-translate-y-full"
+          "fixed -translate-x-1/2 left-1/2 py-2 md:py-12 top-0 flex items-center justify-center mx-auto max-w-screen-xl w-full z-50 h-16 transition-transform duration-300",
+          isVisible ? "translate-y-0" : "-mt-2 -translate-y-full",
+          lastScrollY > 50 ? "bg-gradient-to-b from-black" : "bg-transparent"
         )}
       >
         <header className="flex pr-4 pl-6 md:px-6 w-full items-center justify-between max-w-screen-xl">
@@ -58,7 +59,7 @@ export default function Header() {
           </Link>
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
-              <Link href="#" legacyBehavior passHref>
+              <Link href="/programa" legacyBehavior passHref>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                   Programa
                 </NavigationMenuLink>

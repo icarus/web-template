@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import FrameOverlay from "@/components/shared/frame-overlay";
 import { Content } from "@/components/shared/content";
 
-const imageSources = ["/BananaOptimizado3.gif"];
+const imageSources = ["/BananaOptimizado5.gif"];
 // const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
 
 export default function Home() {
@@ -32,7 +32,7 @@ export default function Home() {
           width={1920}
           height={1080}
           quality={100}
-          className="md:w-full h-full scale-150 md:scale-100 object-contain md:object-cover pointer-events-auto select-none saturate-200 brightness-100"
+          className="md:w-full h-full scale-150 md:scale-90 object-contain md:object-cover pointer-events-auto select-none saturate-200 brightness-100"
         />
       </div>
     </main>

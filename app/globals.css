@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply underline-offset-2;
+  @apply underline-offset-2 overflow-y-scroll;
   font-family: var(--font-sans);
 }
 
@@ -85,4 +85,12 @@ body {
   body {
     @apply bg-black text-white;
   }
+}
+
+img, button {
+  -webkit-user-drag: none;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
