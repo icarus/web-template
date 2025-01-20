@@ -28,17 +28,17 @@ export function ModelViewer({
   const [isGrayscale, setIsGrayscale] = useState(false);
   const [cameraPosition, setCameraPosition] = useState<'front' | 'top' | 'isometric'>('front');
   const [autoRotate, setAutoRotate] = useState(true);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const targetZoomRef = useRef(1);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cameraPositions = {
     front: new Vector3(0, 0, 5),
     top: new Vector3(0, 5, 0),
     isometric: new Vector3(-3, 3, 3),
   };
 
-  const samplingRate = 16;
   const rotationSpeed = 0.005 * rotationSpeedFactor;
-  const rotationRef = useRef<number>(0);
-  const lastSampleTime = useRef<number>(0);
   const frameRef = useRef<number>(0);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -109,7 +109,7 @@ export function ModelViewer({
         const y = Math.round(Math.floor(pixelIndex / resolution) * totalSize + pixelSize / 2);
 
         ctx.beginPath();
-        ctx.arc(x, y, pixelSize / 2, 0, Math.PI * 2);
+        ctx.arc(x, y, pixelSize / 1.5, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.globalAlpha = a / 255;
         ctx.fill();
@@ -119,13 +119,15 @@ export function ModelViewer({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }, [resolution, rgbToLightness, pixelSize, colors]);
 
-  const animate = useCallback((model: THREE.Group) => {
-    if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+  const modelRef = useRef<THREE.Group | null>(null);
 
-    frameRef.current = requestAnimationFrame(() => animate(model));
+  const animate = useCallback(() => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !modelRef.current) return;
+
+    frameRef.current = requestAnimationFrame(animate);
 
     if (autoRotate) {
-      model.rotation.y = (model.rotation.y + rotationSpeed) % (Math.PI * 2);
+      modelRef.current.rotation.y = (modelRef.current.rotation.y + rotationSpeed) % (Math.PI * 2);
     }
 
     // Update camera position with smooth transition
@@ -133,11 +135,21 @@ export function ModelViewer({
       const targetPosition = cameraPositions[cameraPosition];
       cameraRef.current.position.lerp(targetPosition, 0.05);
       cameraRef.current.lookAt(0, 0, 0);
+
+      // Smooth zoom transition
+      const currentZoom = cameraRef.current.zoom;
+      const targetZoom = isZoomed ? 2 : 1;
+      targetZoomRef.current = targetZoom;
+
+      if (Math.abs(currentZoom - targetZoom) > 0.01) {
+        cameraRef.current.zoom = THREE.MathUtils.lerp(currentZoom, targetZoom, 0.05);
+        cameraRef.current.updateProjectionMatrix();
+      }
     }
 
     readPixelColors();
     rendererRef.current.render(sceneRef.current, cameraRef.current);
-  }, [autoRotate, readPixelColors, rotationSpeed, cameraPositions, cameraPosition]);
+  }, [autoRotate, readPixelColors, rotationSpeed, cameraPositions, cameraPosition, isZoomed]);
 
   const defaultValues = {
     resolution: 128,
@@ -145,6 +157,7 @@ export function ModelViewer({
     rotationSpeed: 1,
     grayscale: false,
     camera: 'front' as const,
+    zoomed: false,
   };
 
   const handleReset = () => {
@@ -153,6 +166,7 @@ export function ModelViewer({
     setRotationSpeedFactor(defaultValues.rotationSpeed);
     setIsGrayscale(defaultValues.grayscale);
     setCameraPosition(defaultValues.camera);
+    setIsZoomed(defaultValues.zoomed);
   };
 
   useEffect(() => {
@@ -208,7 +222,8 @@ export function ModelViewer({
       modelPath,
       (gltf) => {
         scene.add(gltf.scene);
-        animate(gltf.scene);
+        modelRef.current = gltf.scene;
+        animate();
         setIsReady(true);
       },
       undefined,
@@ -339,6 +354,14 @@ export function ModelViewer({
               Isométrica
             </Button>
           </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label className="text-sm">Zoom</label>
+          <Switch
+            checked={isZoomed}
+            onCheckedChange={setIsZoomed}
+          />
         </div>
 
         <div className="flex items-center justify-between">
