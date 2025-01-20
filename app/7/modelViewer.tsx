@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
+import { Vector3 } from "three";
 
 interface ModelViewerProps {
   modelPath: string;
@@ -25,14 +26,14 @@ export function ModelViewer({
   const [pixelSize, setPixelSize] = useState(1);
   const [rotationSpeedFactor, setRotationSpeedFactor] = useState(1);
   const [isGrayscale, setIsGrayscale] = useState(false);
+  const [cameraPosition, setCameraPosition] = useState<'front' | 'top' | 'isometric'>('front');
+  const [autoRotate, setAutoRotate] = useState(true);
 
-  // Adjust pixel size when resolution changes
-  useEffect(() => {
-    const baseSize = 128; // Base resolution
-    const scaleFactor = baseSize / resolution;
-    const newPixelSize = Math.max(1, Math.round(pixelSize * scaleFactor));
-    setPixelSize(newPixelSize);
-  }, [pixelSize, resolution]);
+  const cameraPositions = {
+    front: new Vector3(0, 0, 5),
+    top: new Vector3(0, 5, 0),
+    isometric: new Vector3(-3, 3, 3),
+  };
 
   const samplingRate = 16;
   const rotationSpeed = 0.005 * rotationSpeedFactor;
@@ -97,10 +98,6 @@ export function ModelViewer({
           color = colors[2];
         } else if (lightness < 0.16) {
           color = colors[1];
-        } else if (lightness < 0.18) {
-          color = colors[3];
-        } else if (lightness < 0.20) {
-          color = colors[2];
         } else if (lightness < 1) {
           color = colors[3];
         } else {
@@ -120,31 +117,34 @@ export function ModelViewer({
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [resolution, colors, rgbToLightness, pixelSize]);
+  }, [resolution, rgbToLightness, pixelSize, colors]);
 
   const animate = useCallback((model: THREE.Group) => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
 
     frameRef.current = requestAnimationFrame(() => animate(model));
-    rotationRef.current = (rotationRef.current + rotationSpeed) % (Math.PI * 2);
-    model.rotation.y = rotationRef.current;
 
-    const currentTime = performance.now();
-    const timeSinceLastSample = currentTime - lastSampleTime.current;
-
-    if (timeSinceLastSample >= samplingRate) {
-      readPixelColors();
-      lastSampleTime.current = currentTime;
+    if (autoRotate) {
+      model.rotation.y = (model.rotation.y + rotationSpeed) % (Math.PI * 2);
     }
 
+    // Update camera position with smooth transition
+    if (cameraRef.current) {
+      const targetPosition = cameraPositions[cameraPosition];
+      cameraRef.current.position.lerp(targetPosition, 0.05);
+      cameraRef.current.lookAt(0, 0, 0);
+    }
+
+    readPixelColors();
     rendererRef.current.render(sceneRef.current, cameraRef.current);
-  }, [samplingRate, readPixelColors, rotationSpeed]);
+  }, [autoRotate, readPixelColors, rotationSpeed, cameraPositions, cameraPosition]);
 
   const defaultValues = {
     resolution: 128,
     pixelSize: 1,
     rotationSpeed: 1,
     grayscale: false,
+    camera: 'front' as const,
   };
 
   const handleReset = () => {
@@ -152,6 +152,7 @@ export function ModelViewer({
     setPixelSize(defaultValues.pixelSize);
     setRotationSpeedFactor(defaultValues.rotationSpeed);
     setIsGrayscale(defaultValues.grayscale);
+    setCameraPosition(defaultValues.camera);
   };
 
   useEffect(() => {
@@ -308,6 +309,43 @@ export function ModelViewer({
             min={0.1}
             max={15}
             step={0.5}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Vista cámara</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={cameraPosition === 'front' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCameraPosition('front')}
+            >
+              Frontal
+            </Button>
+            <Button
+              variant={cameraPosition === 'top' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCameraPosition('top')}
+            >
+              Superior
+            </Button>
+            <Button
+              variant={cameraPosition === 'isometric' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCameraPosition('isometric')}
+            >
+              Isométrica
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label className="text-sm">Auto-rotación</label>
+          <Switch
+            checked={autoRotate}
+            onCheckedChange={setAutoRotate}
           />
         </div>
       </div>
