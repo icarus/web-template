@@ -54,7 +54,7 @@ export default function Header() {
         )}
       >
         <header className="flex pr-4 pl-6 md:px-6 w-full items-center justify-between max-w-screen-xl">
-          <Link href="/">
+          <Link href="/" className="cursor-pointer">
             <Image src="/logo.svg" alt="Logo" width={128} height={24} />
           </Link>
           <NavigationMenu className="hidden md:flex">
