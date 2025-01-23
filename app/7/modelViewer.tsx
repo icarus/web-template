@@ -14,21 +14,34 @@ interface ModelViewerProps {
   colors?: string[];
 }
 
+// Add this type for camera positions
+type CameraPositionType = 'front' | 'top' | 'isometric';
+
 export function ModelViewer({
   modelPath,
   colors = ["#000000", "#764A0A", "#F57C00", "#FFD700"],
 }: ModelViewerProps) {
+  const defaultValues = {
+    resolution: 128,
+    pixelSize: 5,
+    rotationSpeedFactor: 1,
+    isGrayscale: false,
+    cameraPosition: 'front' as CameraPositionType,
+    isZoomed: false,
+    autoRotate: true
+  };
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [, setIsReady] = useState(false);
 
-  const [resolution, setResolution] = useState(128);
-  const [pixelSize, setPixelSize] = useState(1);
-  const [rotationSpeedFactor, setRotationSpeedFactor] = useState(1);
-  const [isGrayscale, setIsGrayscale] = useState(false);
-  const [cameraPosition, setCameraPosition] = useState<'front' | 'top' | 'isometric'>('front');
-  const [autoRotate, setAutoRotate] = useState(true);
-  const [isZoomed, setIsZoomed] = useState(false);
+  const [resolution, setResolution] = useState(defaultValues.resolution);
+  const [pixelSize, setPixelSize] = useState(defaultValues.pixelSize);
+  const [rotationSpeedFactor, setRotationSpeedFactor] = useState(defaultValues.rotationSpeedFactor);
+  const [isGrayscale, setIsGrayscale] = useState(defaultValues.isGrayscale);
+  const [cameraPosition, setCameraPosition] = useState<CameraPositionType>(defaultValues.cameraPosition);
+  const [autoRotate, setAutoRotate] = useState(defaultValues.autoRotate);
+  const [isZoomed, setIsZoomed] = useState(defaultValues.isZoomed);
   const targetZoomRef = useRef(1);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,6 +59,8 @@ export function ModelViewer({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const renderTargetRef = useRef<THREE.WebGLRenderTarget | null>(null);
 
+  const colorHistoryRef = useRef<Map<number, { color: string, frames: number }>>(new Map());
+
   const rgbToLightness = useCallback((r: number, g: number, b: number) => {
     r /= 255;
     g /= 255;
@@ -57,8 +72,19 @@ export function ModelViewer({
     return (max + min) / 2;
   }, []);
 
+  const lastFrameTime = useRef(0);
+  const FPS = 20;
+  const frameInterval = 1000 / FPS;
+
   const readPixelColors = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !renderTargetRef.current) return;
+
+    const currentTime = performance.now();
+    const deltaTime = currentTime - lastFrameTime.current;
+
+    if (deltaTime < frameInterval) return;
+
+    lastFrameTime.current = currentTime;
 
     const pixelData = new Uint8Array(resolution * resolution * 4);
     rendererRef.current.setRenderTarget(renderTargetRef.current);
@@ -69,7 +95,7 @@ export function ModelViewer({
     const ctx = overlayCanvasRef.current?.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
-    const gap = pixelSize;
+    const gap = pixelSize * 1.75;
     const totalSize = pixelSize + gap;
     const canvasSize = resolution * totalSize;
 
@@ -80,44 +106,79 @@ export function ModelViewer({
 
     ctx.clearRect(0, 0, canvasSize, canvasSize);
     ctx.imageSmoothingEnabled = false;
-    ctx.translate(0.5, 0.5);
 
-    for (let i = 0; i < pixelData.length; i += 4) {
-      const r = pixelData[i];
-      const g = pixelData[i + 1];
-      const b = pixelData[i + 2];
-      const a = pixelData[i + 3];
+    const pixels = new Uint32Array(pixelData.buffer);
+    const colorCache = new Map<number, string>();
+    const newColorHistory = new Map<number, { color: string, frames: number }>();
+
+    for (let i = 0; i < pixels.length; i++) {
+      const pixel = pixels[i];
+      const a = (pixel >> 24) & 0xff;
 
       if (a > 0) {
-        const lightness = rgbToLightness(r, g, b);
-        let color;
+        const r = pixel & 0xff;
+        const g = (pixel >> 8) & 0xff;
+        const b = (pixel >> 16) & 0xff;
 
-        if (lightness < 0.08) {
-          color = colors[3];
-        } else if (lightness < 0.12) {
-          color = colors[2];
-        } else if (lightness < 0.16) {
-          color = colors[1];
-        } else if (lightness < 1) {
-          color = colors[3];
-        } else {
-          color = colors[0];
+        const key = (r << 16) | (g << 8) | b;
+        let color = colorCache.get(key);
+
+        if (!color) {
+          const lightness = rgbToLightness(r, g, b);
+          let newColor: string;
+
+          if (lightness < 0.08) {
+            newColor = colors[3];
+          } else if (lightness < 0.12) {
+            newColor = colors[2];
+          } else if (lightness < 0.16) {
+            newColor = colors[1];
+          } else if (lightness < 1) {
+            newColor = colors[3];
+          } else {
+            newColor = colors[0];
+          }
+
+          // Check color history
+          const history = colorHistoryRef.current.get(i);
+          if (history) {
+            if (history.color !== newColor) {
+              // If color is different, increment frame counter
+              if (history.frames < 5) {
+                // Keep old color until threshold is reached
+                newColor = history.color;
+                newColorHistory.set(i, { color: history.color, frames: history.frames + 1 });
+              } else {
+                // Change color after threshold
+                newColorHistory.set(i, { color: newColor, frames: 0 });
+              }
+            } else {
+              // Same color, reset frame counter
+              newColorHistory.set(i, { color: newColor, frames: 0 });
+            }
+          } else {
+            // New pixel, start tracking
+            newColorHistory.set(i, { color: newColor, frames: 0 });
+          }
+
+          color = newColor;
+          colorCache.set(key, color);
         }
 
-        const pixelIndex = i / 4;
-        const x = Math.round((pixelIndex % resolution) * totalSize + pixelSize / 2);
-        const y = Math.round(Math.floor(pixelIndex / resolution) * totalSize + pixelSize / 2);
+        const x = Math.round((i % resolution) * totalSize);
+        const y = Math.round(Math.floor(i / resolution) * totalSize);
 
-        ctx.beginPath();
-        ctx.arc(x, y, pixelSize / 1.5, 0, Math.PI * 2);
+        const size = pixelSize;
+        const offset = (totalSize - size) / 2;
         ctx.fillStyle = color;
-        ctx.globalAlpha = a / 255;
-        ctx.fill();
+        ctx.globalAlpha = 100;
+        ctx.fillRect(x + offset, y + offset, size, size);
       }
     }
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [resolution, rgbToLightness, pixelSize, colors]);
+    // Update color history
+    colorHistoryRef.current = newColorHistory;
+  }, [resolution, rgbToLightness, pixelSize, colors, frameInterval]);
 
   const modelRef = useRef<THREE.Group | null>(null);
 
@@ -130,13 +191,11 @@ export function ModelViewer({
       modelRef.current.rotation.y = (modelRef.current.rotation.y + rotationSpeed) % (Math.PI * 2);
     }
 
-    // Update camera position with smooth transition
     if (cameraRef.current) {
       const targetPosition = cameraPositions[cameraPosition];
       cameraRef.current.position.lerp(targetPosition, 0.05);
       cameraRef.current.lookAt(0, 0, 0);
 
-      // Smooth zoom transition
       const currentZoom = cameraRef.current.zoom;
       const targetZoom = isZoomed ? 2 : 1;
       targetZoomRef.current = targetZoom;
@@ -151,22 +210,14 @@ export function ModelViewer({
     rendererRef.current.render(sceneRef.current, cameraRef.current);
   }, [autoRotate, readPixelColors, rotationSpeed, cameraPositions, cameraPosition, isZoomed]);
 
-  const defaultValues = {
-    resolution: 128,
-    pixelSize: 1,
-    rotationSpeed: 1,
-    grayscale: false,
-    camera: 'front' as const,
-    zoomed: false,
-  };
-
   const handleReset = () => {
     setResolution(defaultValues.resolution);
     setPixelSize(defaultValues.pixelSize);
-    setRotationSpeedFactor(defaultValues.rotationSpeed);
-    setIsGrayscale(defaultValues.grayscale);
-    setCameraPosition(defaultValues.camera);
-    setIsZoomed(defaultValues.zoomed);
+    setRotationSpeedFactor(defaultValues.rotationSpeedFactor);
+    setIsGrayscale(defaultValues.isGrayscale);
+    setCameraPosition(defaultValues.cameraPosition);
+    setIsZoomed(defaultValues.isZoomed);
+    setAutoRotate(defaultValues.autoRotate);
   };
 
   useEffect(() => {
@@ -186,7 +237,6 @@ export function ModelViewer({
       1000
     );
 
-    // Add two directional lights for consistent illumination
     const frontLight = new THREE.DirectionalLight(0xffffff, 2);
     frontLight.position.set(0, 0, 5);
     scene.add(frontLight);
@@ -195,7 +245,6 @@ export function ModelViewer({
     backLight.position.set(0, 0, -5);
     scene.add(backLight);
 
-    // Add ambient light to ensure minimum brightness
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
@@ -203,7 +252,7 @@ export function ModelViewer({
       canvas: canvasRef.current,
       powerPreference: "high-performance",
       antialias: true,
-      alpha: true,
+      alpha: false,
     });
 
     renderer.setClearColor(0x000000, 0);
