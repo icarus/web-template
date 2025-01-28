@@ -99,7 +99,7 @@ export default function Model() {
     index: number;
   }) => (
     <FloatingElement depth={depth} className={position}>
-      <div ref={el => linkRefs.current[index] = el}>
+      <div ref={el => { linkRefs.current[index] = el }}>
         <Link href={href} className="group">
           <motion.div
             initial={{ opacity: 0 }}
@@ -132,7 +132,7 @@ export default function Model() {
         {links.map((_, index) => (
           <line
             key={index}
-            ref={el => lineRefs.current[index] = el}
+            ref={el => { lineRefs.current[index] = el }}
             stroke="white"
             strokeWidth="1"
           />
@@ -155,7 +155,7 @@ export default function Model() {
 
       <div
         ref={centerRef}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-3 bg-white z-10 shadow-2xl aspect-square"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 bg-white ring-white ring-2 border-[5px] border-black z-10 shadow-2xl aspect-square"
       />
 
       <ModelViewer

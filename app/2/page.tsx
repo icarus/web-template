@@ -1,7 +1,5 @@
 import Image from "next/image";
 import { InfoPanel } from "../1/page";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function Page() {
   return (
