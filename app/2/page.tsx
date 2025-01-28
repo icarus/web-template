@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { InfoPanel } from "../1/page";
+import { InfoPanel } from "@/components/shared/info-panel";
 
 export default function Page() {
   return (
