@@ -1,153 +1,165 @@
 'use client'
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FloatingElement } from "@/components/fancy/parallax-floating";
 import Floating from "@/components/fancy/parallax-floating";
 import { ModelViewer } from "./simpleModel";
-import { exampleImages } from "@/helpers/exampleImages";
 import { motion } from "framer-motion";
-import { useState } from "react"
-import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 
-const decorativeImages = [
+const links = [
   {
-    src: "https://dfmas.df.cl/dfmas/site/artic/20241129/imag/foto_0000005920241129115939/Captura_de_pantalla_2024-12-02_a_las_9.12.06_a._m..png",
-    position: [-1, 0, 0] as [number, number, number], // Left side
-    scale: 1.2,
-    caption: "Programa",
+    name: "Programa",
+    href: "/programa",
+    description: "Invertimos $200K USD por el 5,5% de tu startup",
+    position: "top-[20%] right-[11%]",
+    depth: 0.5
   },
   {
-    src: "/menu/forum.webp",
-    position: [1, 0, 0] as [number, number, number], // Right side
-    scale: 1.2,
-    caption: "Hack Club Forum",
+    name: "Portafolio",
+    href: "/programa",
+    description: "Conoce las startups en las que hemos invertido",
+    position: "top-[35%] left-[15%]",
+    depth: 1
   },
   {
-    src: "/menu/hack.png",
-    position: [0, 1, 0] as [number, number, number], // Top
-    scale: 1.2,
-    caption: "sdd Club Logo",
+    name: "Equipo",
+    href: "/programa",
+    description: "Conoce al equipo detrás de Platanus",
+    position: "bottom-[15%] right-[20%]",
+    depth: 2
   },
-  // Add more images as needed
 ];
 
 export default function Model() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const centerRef = useRef<HTMLDivElement>(null);
+  const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const lineRefs = useRef<(SVGLineElement | null)[]>([]);
 
-  // Add animation variants for the images
-  const imageVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { duration: 0.5 }
-    }
-  };
+  useEffect(() => {
+    const updateLines = () => {
+      if (!centerRef.current) return;
+
+      const centerRect = centerRef.current.getBoundingClientRect();
+      const centerX = centerRect.left + centerRect.width / 2;
+      const centerY = centerRect.top + centerRect.height / 2;
+
+      linkRefs.current.forEach((linkRef, index) => {
+        if (!linkRef || !lineRefs.current[index]) return;
+
+        // Find the yellow square within this link
+        const yellowSquare = linkRef.querySelector('[data-yellow-square]');
+        if (!yellowSquare) return;
+
+        const squareRect = yellowSquare.getBoundingClientRect();
+        const squareX = squareRect.left + squareRect.width / 2;
+        const squareY = squareRect.top + squareRect.height / 2;
+
+        const line = lineRefs.current[index];
+        line?.setAttribute('x1', `${centerX}`);
+        line?.setAttribute('y1', `${centerY}`);
+        line?.setAttribute('x2', `${squareX}`);
+        line?.setAttribute('y2', `${squareY}`);
+      });
+    };
+
+    // Initial update
+    updateLines();
+
+    // Update on resize
+    window.addEventListener('resize', updateLines);
+
+    // Update on mousemove for parallax effect
+    const handleMouseMove = () => {
+      requestAnimationFrame(updateLines);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('resize', updateLines);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [centerRef, linkRefs, lineRefs]);
+
+  const FloatingLink = ({
+    name,
+    href,
+    description,
+    depth,
+    position,
+    index
+  }: {
+    name: string;
+    href: string;
+    description: string;
+    depth: number;
+    position: string;
+    index: number;
+  }) => (
+    <FloatingElement depth={depth} className={position}>
+      <div ref={el => linkRefs.current[index] = el}>
+        <Link href={href} className="group">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="max-w-64 p-4 rounded-lg hover:bg-white/5 transition-colors"
+          >
+            <h2 className="w-full relative flex items-center gap-1 text-sm font-mono uppercase font-medium group-hover:underline transition-colors">
+              {name}
+              <ArrowUpRight className="size-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+              <div
+                data-yellow-square
+                className={cn(
+                  "absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-1.5 bg-white aspect-square",
+                  index % 2 !== 0 ? "right-0" : "-ml-4"
+                )}
+              />
+            </h2>
+            <p className="text-sm text-neutral-400 mt-1">
+              {description}
+            </p>
+          </motion.div>
+        </Link>
+      </div>
+    </FloatingElement>
+  );
 
   return (
     <div className="relative w-full h-screen">
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogHeader className="sr-only">
-          <DialogTitle>Selected Image</DialogTitle>
-        </DialogHeader>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0">
-          <Image
-            src={selectedImage || ''}
-            alt="Selected image"
-            className="w-full h-full object-contain"
-            width={1000}
-            height={1000}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        {links.map((_, index) => (
+          <line
+            key={index}
+            ref={el => lineRefs.current[index] = el}
+            stroke="white"
+            strokeWidth="1"
           />
-        </DialogContent>
-      </Dialog>
+        ))}
+      </svg>
 
-      <Floating sensitivity={-1} className="z-50 overflow-hidden">
-        <FloatingElement depth={0.5} className="top-[8%] left-[11%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[0].url}
-            alt="Floating image 1"
-            className="w-16 h-16 md:w-24 md:h-24 object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[0].url)}
+      <Floating sensitivity={-1} className="z-20 overflow-hidden">
+        {links.map((link, index) => (
+          <FloatingLink
+            key={index}
+            index={index}
+            name={link.name}
+            href={link.href}
+            description={link.description}
+            depth={link.depth}
+            position={link.position}
           />
-        </FloatingElement>
-        <FloatingElement depth={1} className="top-[10%] left-[32%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[1].url}
-            className="w-20 h-20 md:w-28 md:h-28 object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[1].url)}
-          />
-        </FloatingElement>
-        <FloatingElement depth={2} className="top-[2%] left-[53%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[2].url}
-            className="w-28 h-40 md:w-40 md:h-52 object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[2].url)}
-          />
-        </FloatingElement>
-        <FloatingElement depth={1} className="top-[0%] left-[83%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[3].url}
-            className="w-24 h-24 md:w-32 md:h-32 object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[3].url)}
-          />
-        </FloatingElement>
-
-        <FloatingElement depth={1} className="top-[40%] left-[2%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[4].url}
-            className="w-28 h-28 md:w-36 md:h-36 object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[4].url)}
-          />
-        </FloatingElement>
-        <FloatingElement depth={2} className="top-[70%] left-[77%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[7].url}
-            className="w-28 h-28 md:w-36 md:h-48 object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[7].url)}
-          />
-        </FloatingElement>
-
-        <FloatingElement depth={4} className="top-[73%] left-[15%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[5].url}
-            className="w-40 md:w-52 h-full object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[5].url)}
-          />
-        </FloatingElement>
-        <FloatingElement depth={1} className="top-[80%] left-[50%]">
-          <motion.img
-            variants={imageVariants}
-            initial="hidden"
-            animate="visible"
-            src={exampleImages[6].url}
-            className="w-24 h-24 md:w-32 md:h-32 object-cover hover:scale-125 duration-200 cursor-pointer transition-transform"
-            onClick={() => setSelectedImage(exampleImages[6].url)}
-          />
-        </FloatingElement>
+        ))}
       </Floating>
+
+      <div
+        ref={centerRef}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-3 bg-white z-10 shadow-2xl aspect-square"
+      />
+
       <ModelViewer
         modelPath="/models/logo2.gltf"
-        floatingImages={decorativeImages}
       />
     </div>
   );
