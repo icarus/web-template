@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import * as THREE from "three";
-import * as THREE from "three";
+import Image from "next/image";
+import { useEffect, useRef, useCallback, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 interface ModelViewerProps {
   modelPath: string;
@@ -28,7 +26,6 @@ export function ModelViewer({
   const renderTargetRef = useRef<THREE.WebGLRenderTarget | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
   const frameRef = useRef<number>(0);
-  const controlsRef = useRef<OrbitControls | null>(null);
 
   const getColorFromLightness = useCallback((lightness: number) => {
     if (lightness < 0.22) return colors[0];
@@ -87,22 +84,20 @@ export function ModelViewer({
 
   const animate = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+
     frameRef.current = requestAnimationFrame(animate);
 
     if (modelRef.current) {
-      // Remove the automatic rotation since we'll control it with OrbitControls
-      // modelRef.current.rotation.y += 0.005;
+      modelRef.current.rotation.y += 0.01;
     }
 
-    // Update controls in animation loop
-    controlsRef.current?.update();
-
     readPixelColors();
+
     rendererRef.current.render(sceneRef.current, cameraRef.current);
-  }, [readPixelColors]);
+  }, []);
 
   useEffect(() => {
-    if (!canvasRef.current || !overlayCanvasRef.current) return;
+    if (!canvasRef.current) return;
 
     const scene = new THREE.Scene();
     scene.background = null;
@@ -120,44 +115,30 @@ export function ModelViewer({
     camera.position.set(0, 0, 5);
     camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvasRef.current,
-      alpha: true,
-    });
-    renderer.setClearColor(0x000000, 0);
-
-    // Add OrbitControls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // Add smooth damping effect
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 3; // Minimum zoom distance
-    controls.maxDistance = 10; // Maximum zoom distance
-    controls.enablePan = false; // Disable panning
-    controlsRef.current = controls;
-
-    // Basic lighting
     const createDirectionalLight = (x: number, y: number, z: number, intensity: number) => {
       const light = new THREE.DirectionalLight(0xffffff, intensity);
       light.position.set(x, y, z);
       return light;
     };
 
-    // Front light
     scene.add(createDirectionalLight(0, 0, 5, 1.5));
-    // Back light
     scene.add(createDirectionalLight(0, 0, -5, 1.5));
-    // Right light
     scene.add(createDirectionalLight(5, 0, 0, 1.5));
-    // Left light
     scene.add(createDirectionalLight(-5, 0, 0, 1.5));
-    // Top light
     scene.add(createDirectionalLight(0, 5, 0, 1.5));
-    // Bottom light
     scene.add(createDirectionalLight(0, -5, 0, 1));
 
-    // Ambient light for overall illumination
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasRef.current,
+      alpha: true,
+      antialias: true,
+    });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
 
     sceneRef.current = scene;
     cameraRef.current = camera;
@@ -171,25 +152,40 @@ export function ModelViewer({
       animate();
     });
 
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const aspect = width / height;
+
+      camera.left = (frustumSize * aspect) / -2;
+      camera.right = (frustumSize * aspect) / 2;
+      camera.top = frustumSize / 2;
+      camera.bottom = frustumSize / -2;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+    };
+
+    window.addEventListener('resize', handleResize);
+
     return () => {
+      window.removeEventListener('resize', handleResize);
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       renderTargetRef.current?.dispose();
       renderer.dispose();
-      controls.dispose(); // Clean up controls
     };
   }, [modelPath, animate]);
 
   return (
-    <div className="relative aspect-square w-full max-w-screen-lg mx-auto">
+    <div className="relative w-screen h-screen mx-auto">
       <canvas
         ref={canvasRef}
-        className="opacity-0 absolute w-full h-full"
-        style={{ cursor: 'grab' }}
+        className="absolute w-full h-full opacity-0"
       />
       <canvas
         ref={overlayCanvasRef}
-        className="scale-x-[-1.5] rotate-180 absolute w-full h-full object-contain"
-        style={{ imageRendering: 'pixelated', pointerEvents: 'none' }}
+        className="scale-x-[-1.5] rotate-180 absolute w-full h-full object-contain pointer-events-none"
+        style={{ imageRendering: 'pixelated' }}
       />
     </div>
   );

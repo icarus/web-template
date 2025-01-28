@@ -89,7 +89,7 @@ export default {
   				to: {
   					transform: 'translateY(calc(-100% - var(--gap)))'
   				}
-  			}
+        }
   		},
   		animation: {
   			marquee: 'marquee var(--duration) infinite linear',
