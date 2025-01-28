@@ -1,3 +1,8 @@
+import { cn } from "@/lib/utils"
+import Image from "next/image"
+import { Button } from "../ui/button"
+import Link from "next/link"
+
 export const InfoPanel = () => {
   return (
     <div className={cn("z-10 w-full h-full flex flex-col gap-12 justify-between relative overflow-clip p-8")}>
