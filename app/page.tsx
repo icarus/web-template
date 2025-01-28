@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
-export const imageSources = ["/BananaOptimizado5.gif"];
+const imageSources = ["/BananaOptimizado5.gif"];
 // const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
 
 export default function Home() {
