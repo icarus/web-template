@@ -12,23 +12,30 @@ import { Vector3 } from "three";
 interface ModelViewerProps {
   modelPath: string;
   colors?: string[];
+  cameraPosition?: CameraPositionType;
+  isGrayscale?: boolean;
+  isZoomed?: boolean;
+  isAutoRotate?: boolean;
 }
 
-// Add this type for camera positions
-type CameraPositionType = 'front' | 'top' | 'isometric';
+type CameraPositionType = 'front' | 'top' | 'isometric' | 'stem' | 'stem-bottom';
 
 export function ModelViewer({
   modelPath,
-  colors = ["#000000", "#764A0A", "#F57C00", "#FFD700"],
+  colors = ["#713F12", "#EF7C00", "#FFEC40"],
+  cameraPosition: initialCameraPosition = 'front',
+  isGrayscale: initialIsGrayscale = false,
+  isZoomed: initialIsZoomed = false,
+  isAutoRotate: initialIsAutoRotate = true,
 }: ModelViewerProps) {
   const defaultValues = {
     resolution: 128,
     pixelSize: 5,
     rotationSpeedFactor: 1,
-    isGrayscale: false,
-    cameraPosition: 'front' as CameraPositionType,
-    isZoomed: false,
-    autoRotate: true
+    isGrayscale: initialIsGrayscale,
+    cameraPosition: initialCameraPosition,
+    isZoomed: initialIsZoomed,
+    autoRotate: initialIsAutoRotate
   };
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -43,12 +50,18 @@ export function ModelViewer({
   const [autoRotate, setAutoRotate] = useState(defaultValues.autoRotate);
   const [isZoomed, setIsZoomed] = useState(defaultValues.isZoomed);
   const targetZoomRef = useRef(1);
+  const [colorPhase, setColorPhase] = useState(0);
+  const [, setColorCount] = useState(12);
+  const [, setSaturation] = useState(0.8);
+  const [, setLightness] = useState(0.5);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const cameraPositions = {
     front: new Vector3(0, 0, 5),
     top: new Vector3(0, 5, 0),
     isometric: new Vector3(-3, 3, 3),
+    stem: new Vector3(0, 5, 15),
+    "stem-bottom": new Vector3(0, 0, -5),
   };
 
   const rotationSpeed = 0.005 * rotationSpeedFactor;
@@ -75,6 +88,45 @@ export function ModelViewer({
   const lastFrameTime = useRef(0);
   const FPS = 20;
   const frameInterval = 1000 / FPS;
+
+  const getColorFromLightness = useCallback((lightness: number) => {
+    if (colorPhase === 0) {
+      if (lightness < 0.22) return colors[0];
+      if (lightness < 0.3) return colors[1];
+      return colors[2];
+    }
+
+    const adjustedLightness = (lightness + colorPhase) % 1;
+    const colorIndex = Math.floor(adjustedLightness * colors.length);
+    const nextColorIndex = (colorIndex + 1) % colors.length;
+
+    const color1 = colors[colorIndex];
+    const color2 = colors[nextColorIndex];
+
+    const factor = (adjustedLightness * colors.length) % 1;
+
+    const rgb1 = {
+      r: parseInt(color1.slice(1, 3), 16),
+      g: parseInt(color1.slice(3, 5), 16),
+      b: parseInt(color1.slice(5, 7), 16)
+    };
+
+    const rgb2 = {
+      r: parseInt(color2.slice(1, 3), 16),
+      g: parseInt(color2.slice(3, 5), 16),
+      b: parseInt(color2.slice(5, 7), 16)
+    };
+
+    const ease = (t: number) => (1 - Math.cos(t * Math.PI)) / 2;
+    const smoothFactor = ease(factor);
+
+    // Interpolate between the colors
+    const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * smoothFactor);
+    const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * smoothFactor);
+    const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * smoothFactor);
+
+    return `rgb(${r},${g},${b})`;
+  }, [colorPhase, colors]);
 
   const readPixelColors = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !renderTargetRef.current) return;
@@ -125,43 +177,28 @@ export function ModelViewer({
 
         if (!color) {
           const lightness = rgbToLightness(r, g, b);
-          let newColor: string;
 
-          if (lightness < 0.08) {
-            newColor = colors[3];
-          } else if (lightness < 0.12) {
-            newColor = colors[2];
-          } else if (lightness < 0.16) {
-            newColor = colors[1];
-          } else if (lightness < 1) {
-            newColor = colors[3];
-          } else {
-            newColor = colors[0];
-          }
+          // Use the new color mapping function
+          let finalColor = getColorFromLightness(lightness);
 
-          // Check color history
+          // Color smoothing logic
           const history = colorHistoryRef.current.get(i);
           if (history) {
-            if (history.color !== newColor) {
-              // If color is different, increment frame counter
-              if (history.frames < 5) {
-                // Keep old color until threshold is reached
-                newColor = history.color;
+            if (history.color !== finalColor) {
+              if (history.frames < 3) {
+                finalColor = history.color;
                 newColorHistory.set(i, { color: history.color, frames: history.frames + 1 });
               } else {
-                // Change color after threshold
-                newColorHistory.set(i, { color: newColor, frames: 0 });
+                newColorHistory.set(i, { color: finalColor, frames: 0 });
               }
             } else {
-              // Same color, reset frame counter
-              newColorHistory.set(i, { color: newColor, frames: 0 });
+              newColorHistory.set(i, { color: finalColor, frames: 0 });
             }
           } else {
-            // New pixel, start tracking
-            newColorHistory.set(i, { color: newColor, frames: 0 });
+            newColorHistory.set(i, { color: finalColor, frames: 0 });
           }
 
-          color = newColor;
+          color = finalColor;
           colorCache.set(key, color);
         }
 
@@ -176,9 +213,8 @@ export function ModelViewer({
       }
     }
 
-    // Update color history
     colorHistoryRef.current = newColorHistory;
-  }, [resolution, rgbToLightness, pixelSize, colors, frameInterval]);
+  }, [resolution, rgbToLightness, pixelSize, getColorFromLightness, frameInterval]);
 
   const modelRef = useRef<THREE.Group | null>(null);
 
@@ -218,6 +254,10 @@ export function ModelViewer({
     setCameraPosition(defaultValues.cameraPosition);
     setIsZoomed(defaultValues.isZoomed);
     setAutoRotate(defaultValues.autoRotate);
+    setColorPhase(0);
+    setColorCount(12);
+    setSaturation(0.8);
+    setLightness(0.5);
   };
 
   useEffect(() => {
@@ -237,14 +277,27 @@ export function ModelViewer({
       1000
     );
 
-    const frontLight = new THREE.DirectionalLight(0xffffff, 2);
-    frontLight.position.set(0, 0, 5);
-    scene.add(frontLight);
+    // Updated lighting setup
+    const createDirectionalLight = (x: number, y: number, z: number, intensity: number) => {
+      const light = new THREE.DirectionalLight(0xffffff, intensity);
+      light.position.set(x, y, z);
+      return light;
+    };
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 2);
-    backLight.position.set(0, 0, -5);
-    scene.add(backLight);
+    // Front light
+    scene.add(createDirectionalLight(0, 0, 5, 1.5));
+    // Back light
+    scene.add(createDirectionalLight(0, 0, -5, 1.5));
+    // Right light
+    scene.add(createDirectionalLight(5, 0, 0, 1.5));
+    // Left light
+    scene.add(createDirectionalLight(-5, 0, 0, 1.5));
+    // Top light
+    scene.add(createDirectionalLight(0, 5, 0, 1.5));
+    // Bottom light
+    scene.add(createDirectionalLight(0, -5, 0, 1));
 
+    // Ambient light for overall illumination
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
@@ -296,7 +349,7 @@ export function ModelViewer({
   }, [resolution]);
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-screen-lg mx-auto p-4">
+    <div className="flex flex-col gap-8 w-full max-w-screen-lg mx-auto">
       <div className="relative aspect-square w-full">
         <canvas
           ref={canvasRef}
@@ -304,14 +357,14 @@ export function ModelViewer({
         />
         <canvas
           ref={overlayCanvasRef}
-          className={`scale-x-[-1.5] rotate-180 absolute w-full h-full object-contain ${isGrayscale ? 'grayscale' : ''}`}
+          className={`scale-x-[-1.5] rotate-180 absolute w-full h-full object-contain ${isGrayscale ? 'grayscale brightness-75' : ''}`}
           style={{
             imageRendering: 'pixelated',
           }}
         />
       </div>
 
-      <div className="grid gap-4 w-full absolute top-1/2 right-12 -translate-y-1/2 max-w-md mx-auto">
+      <div className="hidden grid gap-4 w-full absolute top-1/2 right-12 -translate-y-1/2 max-w-md mx-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <label className="text-sm" htmlFor="grayscale-mode">
@@ -345,20 +398,6 @@ export function ModelViewer({
             min={32}
             max={512}
             step={32}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Tamaño pixel</span>
-            <span>{pixelSize}px</span>
-          </div>
-          <Slider
-            value={[pixelSize]}
-            onValueChange={([value]) => setPixelSize(value)}
-            min={1}
-            max={Math.max(1, Math.round(16 * (128 / resolution)))}
-            step={1}
           />
         </div>
 
@@ -418,6 +457,20 @@ export function ModelViewer({
           <Switch
             checked={autoRotate}
             onCheckedChange={setAutoRotate}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Color Phase</span>
+            <span>{(colorPhase * 360).toFixed(0)}°</span>
+          </div>
+          <Slider
+            value={[colorPhase]}
+            onValueChange={([value]) => setColorPhase(value)}
+            min={0}
+            max={1}
+            step={0.001}
           />
         </div>
       </div>

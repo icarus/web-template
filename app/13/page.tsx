@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import FrameOverlay from "@/components/shared/frame-overlay";
 import { Content } from "@/components/shared/content";
+import FrameOverlay from "@/components/shared/frame-overlay";
 
-export const imageSources = ["/BananaOptimizado5.gif"];
+const imageSources = ["/gif2.gif"];
 // const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
 
 export default function Home() {
@@ -20,10 +20,10 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="font-sans w-screen h-svh max-h-screen overflow-hidden">
-      {/* <Content /> */}
+    <main className="font-sans w-screen h-svh overflow-hidden">
+      <Content />
 
-      {/* <FrameOverlay /> */}
+      <FrameOverlay />
 
       <div className="absolute -z-10 w-screen h-screen">
         <Image
@@ -32,7 +32,7 @@ export default function Home() {
           width={1920}
           height={1080}
           quality={100}
-          className="md:w-full h-full scale-150 md:scale-90 object-contain md:object-cover pointer-events-auto select-none saturate-200 brightness-100"
+          className="w-full h-full object-cover pointer-events-auto select-none saturate-200 brightness-100"
         />
       </div>
     </main>
