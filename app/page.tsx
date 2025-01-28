@@ -2,8 +2,6 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import FrameOverlay from "@/components/shared/frame-overlay";
-import { Content } from "@/components/shared/content";
 
 export const imageSources = ["/BananaOptimizado5.gif"];
 // const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
