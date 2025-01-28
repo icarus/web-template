@@ -3,6 +3,7 @@
 import {
   createContext,
   ReactNode,
+  RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -45,7 +46,7 @@ const Floating = ({
       }
     >()
   )
-  const mousePositionRef = useMousePositionRef(containerRef)
+  const mousePositionRef = useMousePositionRef(containerRef as RefObject<HTMLElement>)
 
   const registerElement = useCallback(
     (id: string, element: HTMLDivElement, depth: number) => {
