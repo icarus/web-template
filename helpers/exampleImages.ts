@@ -3,19 +3,19 @@ export const exampleImages = [
     url: "https://media.licdn.com/dms/image/v2/D4E22AQFOnP5-pUKGQg/feedshare-shrink_800/feedshare-shrink_800/0/1734019440295?e=1738800000&v=beta&t=ZsbDMubn3tW1OK09QPS_oHPdJrqPHdEcCA7k8P2fBsg",
     author: "Branislav Rodman",
     link: "https://unsplash.com/photos/a-black-and-white-photo-of-a-woman-brushing-her-teeth-r1SjnJL5tf0",
-    title: "A Black and White Photo of a Woman Brushing Her Teeth",
+    title: "Programa",
   },
   {
     url: "https://media.licdn.com/dms/image/v2/D4E22AQGeWtiIc_b2Qw/feedshare-shrink_800/feedshare-shrink_800/0/1724796383608?e=1738800000&v=beta&t=MkzdeWumBz_KzcHWFOf5kTCAYJAIDEI8hXyO89Tuh_0",
     link: "https://unsplash.com/photos/a-painting-of-a-palm-leaf-on-a-multicolored-background-AaNPwrSNOFE",
     title: "Neon Palm",
-    author: "Tim Mossholder",
+    author: "Portafolio",
   },
   {
     url: "https://media.licdn.com/dms/image/v2/D4E22AQHWN5FuY6CI_Q/feedshare-shrink_800/feedshare-shrink_800/0/1710540816665?e=1738800000&v=beta&t=fWovoxMVw6ZVPoHn3srNvyn5uL46OHSgDYqZcf4oU0A",
     link: "https://unsplash.com/photos/a-blurry-photo-of-a-crowd-of-people-UgbxzloNGsc",
     author: "ANDRII SOLOK",
-    title: "A blurry photo of a crowd of people",
+    title: "Equipo",
   },
   {
     url: "https://media.licdn.com/dms/image/v2/D5622AQFk8d7-XOo5kQ/feedshare-shrink_800/feedshare-shrink_800/0/1718373690243?e=1738800000&v=beta&t=0TLNoCiWXJu241v7S0m0vPnrrx4vdXCjEwObLrwLsU0",
@@ -45,6 +45,6 @@ export const exampleImages = [
     url: "https://media.licdn.com/dms/image/v2/D4E22AQEwXOyT6I2FYg/feedshare-shrink_800/feedshare-shrink_800/0/1718202718134?e=1738800000&v=beta&t=dFVJZ10ID7NSFpwRKYcsKoe9o9HxDviiLLML8nz2Dds",
     author: "Mathilde Langevin",
     link: "https://unsplash.com/photos/a-table-topped-with-two-wine-glasses-and-plates-Ig0gRAHspV0",
-    title: "A table topped with two wine glasses and plates",
+    title: "Programa",
   }
 ]

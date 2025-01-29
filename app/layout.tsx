@@ -41,7 +41,7 @@ export default function RootLayout({
         )}
       >
         <main>
-          {pathname !== "/1" && pathname !== "/2" && <Header />}
+          {pathname !== "/1" && pathname !== "/2" && pathname !== "/4" && <Header />}
           {children}
           {pathname === "/programa" && (
             <div className="fixed top-0 -z-20 w-screen h-screen">

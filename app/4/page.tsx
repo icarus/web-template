@@ -4,10 +4,12 @@ import { FloatingElement } from "@/components/fancy/parallax-floating";
 import Floating from "@/components/fancy/parallax-floating";
 import { ModelViewer } from "./simpleModel";
 import { motion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Info } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 const links = [
   {
@@ -15,22 +17,45 @@ const links = [
     href: "/programa",
     description: "Invertimos $200K USD por el 5,5% de tu startup",
     position: "top-[20%] right-[11%]",
-    depth: 0.5
+    depth: 0.5,
+    floating: true
   },
   {
     name: "Portafolio",
     href: "/programa",
-    description: "Conoce las startups en las que hemos invertido",
+    description: "Las startups en las que hemos invertido",
     position: "top-[35%] left-[15%]",
-    depth: 1
+    depth: 1,
+    floating: true
   },
   {
     name: "Equipo",
     href: "/programa",
-    description: "Conoce al equipo detrás de Platanus",
+    description: "El equipo detrás de Platanus",
     position: "bottom-[15%] right-[20%]",
-    depth: 2
+    depth: 2,
+    floating: true
   },
+  {
+    name: "Blog",
+    href: "/blog",
+    floating: false
+  },
+  {
+    name: "Documentos",
+    href: "/documentos",
+    floating: false
+  },
+  {
+    name: "Demo Day",
+    href: "/demo-day",
+    floating: false
+  },
+  {
+    name: "Hackathon",
+    href: "/hackathon",
+    floating: false
+  }
 ];
 
 export default function Model() {
@@ -42,46 +67,52 @@ export default function Model() {
     const updateLines = () => {
       if (!centerRef.current) return;
 
+      // Get center point accounting for transforms
       const centerRect = centerRef.current.getBoundingClientRect();
-      const centerX = centerRect.left + centerRect.width / 2;
-      const centerY = centerRect.top + centerRect.height / 2;
+      const centerX = centerRect.left + (centerRect.width / 2);
+      const centerY = centerRect.top + (centerRect.height / 2);
 
       linkRefs.current.forEach((linkRef, index) => {
         if (!linkRef || !lineRefs.current[index]) return;
 
-        // Find the yellow square within this link
         const yellowSquare = linkRef.querySelector('[data-yellow-square]');
         if (!yellowSquare) return;
 
+        // Get square position accounting for transforms
         const squareRect = yellowSquare.getBoundingClientRect();
-        const squareX = squareRect.left + squareRect.width / 2;
-        const squareY = squareRect.top + squareRect.height / 2;
+        const squareX = squareRect.left + (squareRect.width / 2);
+        const squareY = squareRect.top + (squareRect.height / 2);
 
         const line = lineRefs.current[index];
-        line?.setAttribute('x1', `${centerX}`);
-        line?.setAttribute('y1', `${centerY}`);
-        line?.setAttribute('x2', `${squareX}`);
-        line?.setAttribute('y2', `${squareY}`);
+        if (line) {
+          // Update line positions
+          line.setAttribute('x1', String(centerX));
+          line.setAttribute('y1', String(centerY));
+          line.setAttribute('x2', String(squareX));
+          line.setAttribute('y2', String(squareY));
+        }
       });
     };
 
-    // Initial update
-    updateLines();
+    let rafId: number;
 
-    // Update on resize
+    // Continuous update loop
+    const animate = () => {
+      updateLines();
+      rafId = requestAnimationFrame(animate);
+    };
+
+    // Start the animation loop
+    animate();
+
+    // Update on resize as well
     window.addEventListener('resize', updateLines);
 
-    // Update on mousemove for parallax effect
-    const handleMouseMove = () => {
-      requestAnimationFrame(updateLines);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateLines);
-      window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [centerRef, linkRefs, lineRefs]);
+  }, []);
 
   const FloatingLink = ({
     name,
@@ -93,9 +124,9 @@ export default function Model() {
   }: {
     name: string;
     href: string;
-    description: string;
-    depth: number;
-    position: string;
+    description?: string;
+    depth?: number;
+    position?: string;
     index: number;
   }) => (
     <FloatingElement depth={depth} className={position}>
@@ -128,19 +159,68 @@ export default function Model() {
 
   return (
     <div className="relative w-full h-screen">
-      <svg className="absolute inset-0 w-full h-full pointer-events-none">
-        {links.map((_, index) => (
-          <line
+      <Link href="/" className="hidden -rotate-90 fixed top-4 left-4">
+        <Image
+          src="/logo.svg"
+          alt="Logo"
+          width={256}
+          height={48}
+        />
+      </Link>
+
+      <div className="max-w-screen-xl w-full left-1/2 -translate-x-1/2 justify-end z-50 flex p-4 absolute bottom-0 gap-2">
+        {links.filter(link => !link.floating).map((link, index) => (
+          <Button
             key={index}
-            ref={el => { lineRefs.current[index] = el }}
-            stroke="white"
-            strokeWidth="1"
-          />
+            variant="outline"
+            size="sm"
+            className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+            asChild
+          >
+            <Link href={link.href}>
+              {link.name === "asadasdas" && (
+                <div className="relative mr-1 size-1 flex items-center justify-center">
+                  <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
+                  <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
+                </div>
+              )}
+              {link.name}
+              <ArrowUpRight className="opacity-50" />
+            </Link>
+          </Button>
         ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+        >
+          <div className="relative mr-1 size-1 flex items-center justify-center">
+            <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
+          </div>
+          Postula
+        </Button>
+        <Button variant="outline" size="icon" className="size-7 group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors">
+          <Info />
+        </Button>
+      </div>
+
+      <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-10">
+        <g>
+          {links.filter(link => link.floating).map((_, index) => (
+            <line
+              key={index}
+              ref={el => { lineRefs.current[index] = el }}
+              stroke="white"
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </g>
       </svg>
 
       <Floating sensitivity={-1} className="z-20 overflow-hidden">
-        {links.map((link, index) => (
+        {links.filter(link => link.floating).map((link, index) => (
           <FloatingLink
             key={index}
             index={index}
