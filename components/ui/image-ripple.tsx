@@ -45,7 +45,7 @@ function Model() {
   const device = useDimension()
   const [prevMouse, setPrevMouse] = useState({ x: 0, y: 0 })
   const [currentWave, setCurrentWave] = useState(0)
-  const { gl, camera } = useThree()
+  const { camera } = useThree()
 
   const scene = new THREE.Scene()
   const max = 100

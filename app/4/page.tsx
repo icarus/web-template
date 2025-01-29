@@ -159,16 +159,15 @@ export default function Model() {
 
   return (
     <div className="relative w-full h-screen">
-      <Link href="/" className="hidden -rotate-90 fixed top-4 left-4">
-        <Image
-          src="/logo.svg"
-          alt="Logo"
-          width={256}
-          height={48}
-        />
-      </Link>
+      <Image
+        src="/logo.svg"
+        alt="Logo"
+        width={164}
+        height={48}
+        className="absolute top-4 left-4 -rotate-90 origin-top-right -translate-x-full"
+      />
 
-      <div className="max-w-screen-xl w-full left-1/2 -translate-x-1/2 justify-end z-50 flex p-4 absolute bottom-0 gap-2">
+      <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-2">
         {links.filter(link => !link.floating).map((link, index) => (
           <Button
             key={index}

@@ -19,7 +19,7 @@ export function ImageCloud({ images }: ImageCloudProps) {
   const [selectedSprite, setSelectedSprite] = useState<THREE.Sprite | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const isAnimatingRef = useRef(false);
-  const [showOverlay, setShowOverlay] = useState(false);
+  const [, setShowOverlay] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
