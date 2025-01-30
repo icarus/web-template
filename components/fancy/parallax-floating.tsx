@@ -46,7 +46,7 @@ const Floating = ({
       }
     >()
   )
-  const mousePositionRef = useMousePositionRef(containerRef as RefObject<HTMLElement>)
+  const mousePositionRef = useMousePositionRef(containerRef as RefObject<HTMLDivElement>)
 
   const registerElement = useCallback(
     (id: string, element: HTMLDivElement, depth: number) => {
