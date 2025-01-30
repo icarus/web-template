@@ -4,24 +4,11 @@ import { useEffect, useRef, useCallback, RefObject } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { cn } from "@/lib/utils";
 import { useMousePositionRef } from "@/hooks/use-mouse-position-ref";
 
 interface ModelProps {
   modelPath: string;
   colors?: string[];
-}
-
-interface PixelPosition {
-  x: number;
-  y: number;
-  z: number;
-  targetX: number;
-  targetY: number;
-  targetZ: number;
-  color: string;
-  trailFactor: number;
-  lastUpdate: number;
 }
 
 export function BananaModel({
@@ -31,15 +18,13 @@ export function BananaModel({
   const containerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const pixelPositionsRef = useRef<PixelPosition[]>([]);
   const mouseRef = useMousePositionRef(containerRef);
-  const lastMousePosRef = useRef({ x: 0, y: 0 });
   const isMovingRef = useRef(false);
-  const moveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const initializedRef = useRef(false);
-
-  const resolution = 128;
-  const pixelSize = 5;
+  const rotationAngleRef = useRef(0);
+  const originalVerticesRef = useRef<Float32Array | null>(null);
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
+  const moveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(setTimeout(() => {}, 0));
+  const pixelPositionsRef = useRef<Map<number, { x: number, y: number, targetX: number, targetY: number }>>(new Map());
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
@@ -48,92 +33,98 @@ export function BananaModel({
   const modelRef = useRef<THREE.Group | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const frameRef = useRef<number>(0);
-  const rotationAngleRef = useRef(0);
+
+  const resolution = 128;
+  const pixelSize = 5;
 
   const getColorFromLightness = useCallback((lightness: number) => {
-    if (lightness < 0.22) return colors[0];
-    if (lightness < 0.3) return colors[1];
-    return colors[2];
+    if (lightness < 0.22) return colors[0];     // Darker brown
+    if (lightness < 0.3) return colors[1];      // Orange
+    return colors[2];                           // Yellow
   }, [colors]);
 
-  const updatePixelPositions = useCallback(() => {
-    if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !renderTargetRef.current) return;
+  const updateModelVertices = useCallback((mouseX: number, mouseY: number, isMoving: boolean) => {
+    if (!modelRef.current || !originalVerticesRef.current) return;
 
-    if (initializedRef.current && pixelPositionsRef.current.length > 0) {
-      return pixelPositionsRef.current;
-    }
+    modelRef.current.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.geometry) {
+        const positions = child.geometry.attributes.position;
 
-    const pixelData = new Uint8Array(resolution * resolution * 4);
-    rendererRef.current.setRenderTarget(renderTargetRef.current);
-    rendererRef.current.render(sceneRef.current, cameraRef.current);
-    rendererRef.current.readRenderTargetPixels(renderTargetRef.current, 0, 0, resolution, resolution, pixelData);
-    rendererRef.current.setRenderTarget(null);
+        if (!originalVerticesRef.current) {
+          // Store original vertices on first run
+          originalVerticesRef.current = new Float32Array(positions.array);
+        }
 
-    const pixels = new Uint32Array(pixelData.buffer);
-    const newPixelPositions: PixelPosition[] = [];
+        const magneticStrength = 0.2;
+        const attractionRadius = 2;
 
-    pixels.forEach((pixel, i) => {
-      const a = (pixel >> 24) & 0xff;
-      if (a > 0) {
-        const gap = pixelSize * 1.75;
-        const totalSize = pixelSize + gap;
-        const x = Math.round((i % resolution) * totalSize);
-        const y = Math.round(Math.floor(i / resolution) * totalSize);
-        const r = pixel & 0xff;
-        const g = (pixel >> 8) & 0xff;
-        const b = (pixel >> 16) & 0xff;
-        const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / (2 * 255);
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i);
+          const y = positions.getY(i);
 
-        newPixelPositions.push({
-          x,
-          y,
-          z: 0,
-          targetX: x,
-          targetY: y,
-          targetZ: 0,
-          color: getColorFromLightness(lightness),
-          trailFactor: 1,
-          lastUpdate: Date.now()
-        });
+          // Convert mouse coordinates to model space
+          const modelMouseX = (mouseX / window.innerWidth) * 4 - 2;
+          const modelMouseY = -(mouseY / window.innerHeight) * 4 + 2;
+
+          const dx = modelMouseX - x;
+          const dy = modelMouseY - y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (isMoving && distance < attractionRadius) {
+            const force = Math.pow(1 - distance / attractionRadius, 2) * magneticStrength;
+            const originalX = originalVerticesRef.current[i * 3];
+            const originalY = originalVerticesRef.current[i * 3 + 1];
+
+            // Apply attraction force
+            positions.setXY(
+              i,
+              originalX + (dx * force),
+              originalY + (dy * force)
+            );
+          } else {
+            // Reset to original position
+            positions.setXY(
+              i,
+              originalVerticesRef.current[i * 3],
+              originalVerticesRef.current[i * 3 + 1]
+            );
+          }
+        }
+
+        positions.needsUpdate = true;
+        child.geometry.computeVertexNormals();
       }
     });
+  }, []);
 
-    pixelPositionsRef.current = newPixelPositions;
-    initializedRef.current = true;
-    return newPixelPositions;
-  }, [resolution, pixelSize, getColorFromLightness]);
+  const animate = useCallback(() => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !renderTargetRef.current) return;
 
-  const drawPixels = useCallback((positions: PixelPosition[]) => {
-    const ctx = overlayCanvasRef.current?.getContext("2d");
-    if (!ctx || !overlayCanvasRef.current) return;
+    frameRef.current = requestAnimationFrame(animate);
 
-    const gap = pixelSize * 1.75;
-    const totalSize = pixelSize + gap;
-    const canvasSize = resolution * totalSize;
+    // Continuous rotation regardless of mouse movement
+    if (modelRef.current) {
+      rotationAngleRef.current += 0.01;
+      modelRef.current.rotation.y = rotationAngleRef.current;
 
-    overlayCanvasRef.current.width = canvasSize;
-    overlayCanvasRef.current.height = canvasSize;
+      // Update model vertices based on mouse position
+      updateModelVertices(
+        mouseRef.current.x,
+        mouseRef.current.y,
+        isMovingRef.current
+      );
+    }
 
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
-    ctx.imageSmoothingEnabled = false;
+    if (controlsRef.current) {
+      controlsRef.current.update();
+    }
 
-    const magneticRadius = 150;
-    const magneticStrength = 40;
-    const easingFactor = 0.15;
-    const trailDecay = 0.98;
-    const resetSpeed = 0.5;
-    const trailDuration = 1000;
-
-    const rect = overlayCanvasRef.current.getBoundingClientRect();
-    const scaleX = canvasSize / rect.width;
-    const scaleY = canvasSize / rect.height;
-
+    // Check mouse movement
     const currentMouseX = mouseRef.current.x;
     const currentMouseY = mouseRef.current.y;
-    const currentTime = Date.now();
-    const mouseMoved =
-      Math.abs(currentMouseX - lastMousePosRef.current.x) > 1 ||
-      Math.abs(currentMouseY - lastMousePosRef.current.y) > 1;
+    const deltaX = currentMouseX - lastMousePosRef.current.x;
+    const deltaY = currentMouseY - lastMousePosRef.current.y;
+    const mouseMoved = Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1;
 
     if (mouseMoved) {
       isMovingRef.current = true;
@@ -142,106 +133,105 @@ export function BananaModel({
       }
       moveTimeoutRef.current = setTimeout(() => {
         isMovingRef.current = false;
-      }, 300);
+      }, 100);
     }
 
     lastMousePosRef.current = { x: currentMouseX, y: currentMouseY };
 
-    const mouseX = canvasSize - (currentMouseX * scaleX * 1.5);
-    const mouseY = canvasSize - (currentMouseY * scaleY);
+    // Clear render target and ensure proper state
+    if (renderTargetRef.current) {
+      rendererRef.current.setRenderTarget(renderTargetRef.current);
+      rendererRef.current.clear();
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
 
-    const sortedPositions = [...positions].sort((a, b) => b.z - a.z);
+      const pixelData = new Uint8Array(resolution * resolution * 4);
+      rendererRef.current.readRenderTargetPixels(renderTargetRef.current, 0, 0, resolution, resolution, pixelData);
+      rendererRef.current.setRenderTarget(null);
 
-    sortedPositions.forEach((pixel) => {
-      const width = Math.round(pixelSize / 1.25);
-      const height = pixelSize;
+      const pixels = new Uint32Array(pixelData.buffer);
+      const gap = pixelSize * 1.75;
+      const totalSize = pixelSize + gap;
 
-      const dx = mouseX - pixel.targetX;
-      const dy = mouseY - pixel.targetY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const ctx = overlayCanvasRef.current?.getContext("2d");
+      if (ctx && overlayCanvasRef.current) {
+        const canvasSize = resolution * totalSize;
+        overlayCanvasRef.current.width = canvasSize;
+        overlayCanvasRef.current.height = canvasSize;
 
-      let x = pixel.targetX;
-      let y = pixel.targetY;
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
+        ctx.imageSmoothingEnabled = false;
 
-      if (distance < magneticRadius && isMovingRef.current) {
-        const force = Math.pow(1 - distance / magneticRadius, 2) * magneticStrength;
+        // For scale-x-[-1.5]: we need to flip the x coordinate
+        const mouseX = (currentMouseX * (canvasSize / window.innerWidth));
+        const mouseY = canvasSize - (currentMouseY * (canvasSize / window.innerHeight));
 
-        // Determine whether to move horizontally or vertically based on which is closer
-        const absX = Math.abs(dx);
-        const absY = Math.abs(dy);
+        const attractionRadius = 750;
+        const magneticStrength = 100;
+        const easingFactor = 0.15;
 
-        if (absX > absY) {
-          // Move horizontally towards cursor
-          x += dx * force * 0.3; // Changed from -= to += to attract
-          y = pixel.targetY; // Keep vertical position unchanged
-        } else {
-          // Move vertically towards cursor
-          x = pixel.targetX; // Keep horizontal position unchanged
-          y += dy * force * 0.3; // Changed from -= to += to attract
-        }
+        for (let i = 0; i < pixels.length; i++) {
+          const pixel = pixels[i];
+          const alpha = (pixel >> 24) & 0xff;
 
-        pixel.trailFactor = 1;
-        pixel.lastUpdate = currentTime;
-      } else {
-        const timeSinceUpdate = currentTime - pixel.lastUpdate;
-        if (timeSinceUpdate < trailDuration) {
-          const timeProgress = timeSinceUpdate / trailDuration;
-          pixel.trailFactor = 1 - timeProgress;
-        } else {
-          pixel.trailFactor *= trailDecay;
-        }
+          if (alpha > 0) {
+            const r = pixel & 0xff;
+            const g = (pixel >> 8) & 0xff;
+            const b = (pixel >> 16) & 0xff;
 
-        // Return to original position maintaining the single-direction movement
-        const returnStrength = Math.max(0.1, 1 - pixel.trailFactor);
-        const dx = pixel.targetX - pixel.x;
-        const dy = pixel.targetY - pixel.y;
+            const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / (2 * 255);
+            const color = getColorFromLightness(lightness);
 
-        // Only move in the direction that's further from target
-        if (Math.abs(dx) > Math.abs(dy)) {
-          x = pixel.x + dx * returnStrength * resetSpeed;
-          y = pixel.targetY;
-        } else {
-          x = pixel.targetX;
-          y = pixel.y + dy * returnStrength * resetSpeed;
+            const x = Math.round((i % resolution) * totalSize);
+            const y = Math.round(Math.floor(i / resolution) * totalSize);
+
+            // Get or initialize pixel position
+            let pixelPos = pixelPositionsRef.current.get(i);
+            if (!pixelPos) {
+              pixelPos = { x, y, targetX: x, targetY: y };
+              pixelPositionsRef.current.set(i, pixelPos);
+            }
+
+            // Update target position based on magnetic effect
+            if (isMovingRef.current) {
+              const dx = mouseX - x;
+              const dy = mouseY - y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < attractionRadius) {
+                const force = Math.pow(1 - distance / attractionRadius, 2) * magneticStrength;
+                const forceLimit = Math.min(force * 0.015, 0.8);
+
+                pixelPos.targetX = x + (dx / distance) * force * forceLimit;
+                pixelPos.targetY = y + (dy / distance) * force * forceLimit;
+              } else {
+                pixelPos.targetX = x;
+                pixelPos.targetY = y;
+              }
+            } else {
+              pixelPos.targetX = x;
+              pixelPos.targetY = y;
+            }
+
+            // Smooth position update
+            pixelPos.x += (pixelPos.targetX - pixelPos.x) * easingFactor;
+            pixelPos.y += (pixelPos.targetY - pixelPos.y) * easingFactor;
+
+            const size = pixelSize;
+            const offset = (totalSize - size) / 2;
+            ctx.fillStyle = color;
+            ctx.fillRect(
+              pixelPos.x + offset,
+              pixelPos.y + offset,
+              size,
+              size
+            );
+          }
         }
       }
-
-      pixel.x += (x - pixel.x) * easingFactor;
-      pixel.y += (y - pixel.y) * easingFactor;
-
-      ctx.fillStyle = pixel.color;
-      ctx.globalAlpha = 1;
-      ctx.fillRect(
-        pixel.x + (totalSize - width) / 2,
-        pixel.y + (totalSize - height) / 2,
-        width,
-        height
-      );
-    });
-    ctx.globalAlpha = 1;
-  }, [resolution, pixelSize]);
-
-  const animate = useCallback(() => {
-    if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
-
-    frameRef.current = requestAnimationFrame(animate);
-
-    rotationAngleRef.current += 0.01;
-    if (modelRef.current) {
-      modelRef.current.rotation.y = rotationAngleRef.current;
-    }
-
-    if (controlsRef.current) {
-      controlsRef.current.update();
-    }
-
-    const newPositions = updatePixelPositions();
-    if (newPositions) {
-      drawPixels(newPositions);
     }
 
     rendererRef.current.render(sceneRef.current, cameraRef.current);
-  }, [updatePixelPositions, drawPixels]);
+  }, [resolution, pixelSize, getColorFromLightness, updateModelVertices]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -300,6 +290,15 @@ export function BananaModel({
     loader.load(modelPath, (gltf) => {
       scene.add(gltf.scene);
       modelRef.current = gltf.scene;
+
+      // Store original vertices for all meshes
+      gltf.scene.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.geometry) {
+          const positions = child.geometry.attributes.position;
+          originalVerticesRef.current = new Float32Array(positions.array);
+        }
+      });
+
       animate();
     });
 
@@ -336,7 +335,7 @@ export function BananaModel({
       />
       <canvas
         ref={overlayCanvasRef}
-        className="absolute scale-x-[1.5] rotate-180 w-full h-full object-contain"
+        className="absolute scale-x-[-1.5] rotate-180 w-full h-full object-contain"
         style={{ imageRendering: 'pixelated' }}
       />
     </div>
