@@ -2,14 +2,15 @@
 
 import { FloatingElement } from "@/components/fancy/parallax-floating";
 import Floating from "@/components/fancy/parallax-floating";
-import { ModelViewer } from "./simpleModel";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Info } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { AnimatedModel } from "./animatedModel";
+import { ModelViewer } from "./simpleModel";
 
 const links = [
   {
@@ -62,6 +63,7 @@ export default function Model() {
   const centerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lineRefs = useRef<(SVGLineElement | null)[]>([]);
+  const [modelLoaded, setModelLoaded] = useState(true);
 
   useEffect(() => {
     const updateLines = () => {
@@ -134,8 +136,9 @@ export default function Model() {
         <Link href={href} className="group">
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="max-w-64 p-4 rounded-lg hover:bg-white/5 transition-colors"
+            animate={{ opacity: modelLoaded ? 1 : 0 }}
+            transition={{ delay: 0.5 + (index * 0.1) }}
+            className="max-w-64 p-4 rounded-lg hover:bg-white/10 hover:backdrop-blur-sm transition-colors"
           >
             <h2 className="w-full relative flex items-center gap-1 text-sm font-mono uppercase font-medium group-hover:underline transition-colors">
               {name}
@@ -158,88 +161,109 @@ export default function Model() {
   );
 
   return (
-    <div className="relative w-full h-screen">
-      <Image
-        src="/logo.svg"
-        alt="Logo"
-        width={164}
-        height={48}
-        className="absolute top-4 left-4 -rotate-90 origin-top-right -translate-x-full"
-      />
+    <>
+      <div className="relative w-full h-screen">
+        <Image
+          src="/logo.svg"
+          alt="Logo"
+          width={164}
+          height={48}
+          className="absolute top-4 left-4 -rotate-90 origin-top-right -translate-x-full"
+        />
 
-      <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-2">
-        {links.filter(link => !link.floating).map((link, index) => (
+        <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-1">
+          {links.filter(link => !link.floating).map((link, index) => (
+            <Button
+              key={index}
+              variant="outline"
+              size="sm"
+              className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+              asChild
+            >
+              <Link href={link.href}>
+                {link.name === "asadasdas" && (
+                  <div className="relative mr-1 size-1 flex items-center justify-center">
+                    <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
+                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
+                  </div>
+                )}
+                {link.name}
+                <ArrowUpRight className="opacity-50" />
+              </Link>
+            </Button>
+          ))}
           <Button
-            key={index}
             variant="outline"
             size="sm"
             className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
-            asChild
           >
-            <Link href={link.href}>
-              {link.name === "asadasdas" && (
-                <div className="relative mr-1 size-1 flex items-center justify-center">
-                  <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
-                  <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
-                </div>
-              )}
-              {link.name}
-              <ArrowUpRight className="opacity-50" />
-            </Link>
+            <div className="relative mr-1 size-1 flex items-center justify-center">
+              <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
+              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
+            </div>
+            Postula
           </Button>
-        ))}
-        <Button
-          variant="outline"
-          size="sm"
-          className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
-        >
-          <div className="relative mr-1 size-1 flex items-center justify-center">
-            <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
+          <div className="text-neutral-400 text-sm flex uppercase font-mono h-7 items-center px-2 rounded-md gap-px bg-neutral-800/75">
+            <span>34d</span>
+            <span>:</span>
+            <span>12h</span>
+            <span>:</span>
+            <span>59m</span>
+            <span>:</span>
+            <span>59s</span>
           </div>
-          Postula
-        </Button>
-        <Button variant="outline" size="icon" className="size-7 group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors">
-          <Info />
-        </Button>
-      </div>
+          <Button variant="outline" size="icon" className="size-7 group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors">
+            <Info />
+          </Button>
+        </div>
 
-      <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-10">
-        <g>
-          {links.filter(link => link.floating).map((_, index) => (
-            <line
+        <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-30">
+          <g>
+            {links.filter(link => link.floating).map((_, index) => (
+              <motion.line
+                key={index}
+                ref={el => { lineRefs.current[index] = el }}
+                stroke="white"
+                strokeWidth=""
+                vectorEffect="non-scaling-stroke"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
+                transition={{
+                  delay: (index * 0.1),
+                  duration: 0.5,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </g>
+        </svg>
+
+        <Floating sensitivity={-1} className="z-20 overflow-hidden">
+          {links.filter(link => link.floating).map((link, index) => (
+            <FloatingLink
               key={index}
-              ref={el => { lineRefs.current[index] = el }}
-              stroke="white"
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
+              index={index}
+              name={link.name}
+              href={link.href}
+              description={link.description}
+              depth={link.depth}
+              position={link.position}
             />
           ))}
-        </g>
-      </svg>
+        </Floating>
 
-      <Floating sensitivity={-1} className="z-20 overflow-hidden">
-        {links.filter(link => link.floating).map((link, index) => (
-          <FloatingLink
-            key={index}
-            index={index}
-            name={link.name}
-            href={link.href}
-            description={link.description}
-            depth={link.depth}
-            position={link.position}
-          />
-        ))}
-      </Floating>
+        <motion.div
+          ref={centerRef}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
+          className="z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 bg-white ring-white ring-2 border-[5px] border-black shadow-2xl aspect-square"
+        />
 
-      <div
-        ref={centerRef}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 bg-white ring-white ring-2 border-[5px] border-black z-10 shadow-2xl aspect-square"
-      />
-
-      <ModelViewer
-        modelPath="/models/logo2.gltf"
-      />
-    </div>
+        <AnimatedModel
+          modelPath="/models/logo2.gltf"
+        />
+      </div>
+    </>
   );
 }

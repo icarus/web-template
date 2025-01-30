@@ -63,11 +63,11 @@ const PixelTransition: React.FC = () => {
 
   return (
     <motion.div
-      className="flex h-screen overflow-hidden relative z-[999] pointer-events-none"
+      className="flex h-screen overflow-hidden absolute z-[999] pointer-events-none bg-transparent"
       animate={controls}
       initial="initial"
     >
-      {[...Array(20)].map((_, index) => (
+      {[...Array(10)].map((_, index) => (
         <div key={index} className="w-[10vw] h-full flex flex-col">
           {getBlocks()}
         </div>
