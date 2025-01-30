@@ -9,7 +9,6 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { AnimatedModel } from "./animatedModel";
 import { BananaModel } from "./bananaModel";
 
 const links = [
@@ -63,7 +62,7 @@ export default function Model() {
   const centerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lineRefs = useRef<(SVGLineElement | null)[]>([]);
-  const [modelLoaded, setModelLoaded] = useState(true);
+  const [modelLoaded, ] = useState(true);
 
   useEffect(() => {
     const updateLines = () => {

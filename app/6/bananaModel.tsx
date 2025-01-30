@@ -231,7 +231,7 @@ export function BananaModel({
     }
 
     rendererRef.current.render(sceneRef.current, cameraRef.current);
-  }, [resolution, pixelSize, getColorFromLightness, updateModelVertices]);
+  }, [mouseRef, updateModelVertices, getColorFromLightness]);
 
   useEffect(() => {
     if (!canvasRef.current) return;

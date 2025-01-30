@@ -3,9 +3,9 @@
 import { FloatingElement } from "@/components/fancy/parallax-floating";
 import Floating from "@/components/fancy/parallax-floating";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Info, X } from "lucide-react";
+import { ArrowUpRight, Info } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
