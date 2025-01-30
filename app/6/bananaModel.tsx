@@ -9,22 +9,17 @@ import { cn } from "@/lib/utils";
 interface ModelProps {
   modelPath: string;
   colors?: string[];
-  onAnimationComplete?: () => void;
 }
 
 interface PixelPosition {
   x: number;
   y: number;
-  targetX: number;
-  targetY: number;
-  z: number;
   color: string;
 }
 
-export function AnimatedModel({
+export function BananaModel({
   modelPath,
   colors = ["#713F12", "#EF7C00", "#FFEC40"],
-  onAnimationComplete,
 }: ModelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -40,9 +35,6 @@ export function AnimatedModel({
   const controlsRef = useRef<OrbitControls | null>(null);
   const frameRef = useRef<number>(0);
   const rotationAngleRef = useRef(0);
-  const pixelPositionsRef = useRef<PixelPosition[]>([]);
-  const isAnimatingRef = useRef(true);
-  const animationStartTimeRef = useRef(0);
 
   const getColorFromLightness = useCallback((lightness: number) => {
     if (lightness < 0.22) return colors[0];
@@ -67,19 +59,16 @@ export function AnimatedModel({
       if (a > 0) {
         const gap = pixelSize * 1.75;
         const totalSize = pixelSize + gap;
-        const targetX = Math.round((i % resolution) * totalSize);
-        const targetY = Math.round(Math.floor(i / resolution) * totalSize);
+        const x = Math.round((i % resolution) * totalSize);
+        const y = Math.round(Math.floor(i / resolution) * totalSize);
         const r = pixel & 0xff;
         const g = (pixel >> 8) & 0xff;
         const b = (pixel >> 16) & 0xff;
         const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / (2 * 255);
 
         newPixelPositions.push({
-          x: targetX,
-          y: targetY,
-          targetX,
-          targetY,
-          z: 0,
+          x,
+          y,
           color: getColorFromLightness(lightness)
         });
       }
@@ -117,131 +106,27 @@ export function AnimatedModel({
     });
   }, [resolution, pixelSize]);
 
-  const initializePixelPositions = useCallback(() => {
-    const newPositions = updatePixelPositions();
-    if (!newPositions) return;
-
-    const canvasSize = resolution * (pixelSize * 2.75); // Total canvas size
-
-    // Initialize with random starting positions
-    pixelPositionsRef.current = newPositions.map(pixel => ({
-      ...pixel,
-      x: pixel.targetX + (Math.random() - 0.5) * canvasSize * 2, // Random starting X
-      y: pixel.targetY + (Math.random() - 0.5) * canvasSize * 2, // Random starting Y
-      z: 1000, // Start far behind
-    }));
-
-    animationStartTimeRef.current = performance.now();
-    isAnimatingRef.current = true;
-  }, [resolution, pixelSize, updatePixelPositions]);
-
-  const readPixelColors = useCallback(() => {
-    if (!isAnimatingRef.current) {
-      // Update pixel positions directly from the render
-      const newPositions = updatePixelPositions();
-      if (newPositions) {
-        pixelPositionsRef.current = newPositions;
-        drawPixels(newPositions);
-      }
-      return;
-    }
-
-    // Handle initial animation
-    if (pixelPositionsRef.current.length === 0) {
-      initializePixelPositions();
-      return;
-    }
-
-    const ctx = overlayCanvasRef.current?.getContext("2d");
-    if (!ctx) return;
-
-    const gap = pixelSize * 1.75;
-    const totalSize = pixelSize + gap;
-    const canvasSize = resolution * totalSize;
-
-    if (overlayCanvasRef.current) {
-      overlayCanvasRef.current.width = canvasSize;
-      overlayCanvasRef.current.height = canvasSize;
-    }
-
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
-    ctx.imageSmoothingEnabled = false;
-
-    // Original animation code
-    const currentTime = performance.now();
-    const animationDuration = 1000;
-    const progress = Math.min(
-      (currentTime - animationStartTimeRef.current) / animationDuration,
-      1
-    );
-
-    if (progress >= 0.5 && onAnimationComplete) {
-      onAnimationComplete();
-    }
-
-    // Ease out cubic function
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-    const easedProgress = easeOutCubic(progress);
-
-    pixelPositionsRef.current.forEach((pixel) => {
-      if (progress < 1) {
-        // Animate position
-        const x = pixel.x + (pixel.targetX - pixel.x) * easedProgress;
-        const y = pixel.y + (pixel.targetY - pixel.y) * easedProgress;
-        const z = pixel.z * (1 - easedProgress);
-
-        // Apply perspective effect based on Z
-        const scale = 1 + (z / 1000);
-        const width = Math.round(pixelSize / 1.25) * scale;
-        const height = pixelSize * scale;
-
-        ctx.fillStyle = pixel.color;
-        ctx.fillRect(
-          x + (totalSize - width) / 2,
-          y + (totalSize - height) / 2,
-          width,
-          height
-        );
-      } else {
-        // Animation finished - draw at final position
-        const width = Math.round(pixelSize / 1.25);
-        const height = pixelSize;
-        ctx.fillStyle = pixel.color;
-        ctx.fillRect(
-          pixel.targetX + (totalSize - width) / 2,
-          pixel.targetY + (totalSize - height) / 2,
-          width,
-          height
-        );
-      }
-    });
-
-    if (progress >= 1) {
-      isAnimatingRef.current = false;
-    }
-  }, [updatePixelPositions, drawPixels, initializePixelPositions, onAnimationComplete]);
-
   const animate = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
 
     frameRef.current = requestAnimationFrame(animate);
 
-    // Only rotate when animation is complete
-    if (!isAnimatingRef.current) {
-      rotationAngleRef.current += 0.01;
-      // Add model rotation
-      if (modelRef.current) {
-        modelRef.current.rotation.y = rotationAngleRef.current;
-      }
+    rotationAngleRef.current += 0.01;
+    if (modelRef.current) {
+      modelRef.current.rotation.y = rotationAngleRef.current;
     }
 
     if (controlsRef.current) {
       controlsRef.current.update();
     }
 
-    readPixelColors();
+    const newPositions = updatePixelPositions();
+    if (newPositions) {
+      drawPixels(newPositions);
+    }
+
     rendererRef.current.render(sceneRef.current, cameraRef.current);
-  }, [readPixelColors]);
+  }, [updatePixelPositions, drawPixels]);
 
   useEffect(() => {
     if (!canvasRef.current) return;

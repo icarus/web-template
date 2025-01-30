@@ -3,13 +3,13 @@
 import { FloatingElement } from "@/components/fancy/parallax-floating";
 import Floating from "@/components/fancy/parallax-floating";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Info, X } from "lucide-react";
+import { ArrowUpRight, Info } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { AnimatedModel } from "./animatedModel";
+import { BananaModel } from "./bananaModel";
 
 const links = [
   {
@@ -62,7 +62,6 @@ export default function Model() {
   const centerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lineRefs = useRef<(SVGLineElement | null)[]>([]);
-  const [modelLoaded, setModelLoaded] = useState(false);
 
   useEffect(() => {
     const updateLines = () => {
@@ -133,12 +132,7 @@ export default function Model() {
     <FloatingElement depth={depth} className={position}>
       <div ref={el => { linkRefs.current[index] = el }}>
         <Link href={href} className="group">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: modelLoaded ? 1 : 0 }}
-            transition={{ delay: 0.1 + (index * 0.1) }}
-            className="max-w-64 p-4 rounded-lg hover:bg-white/10 hover:backdrop-blur-sm transition-colors"
-          >
+          <div className="max-w-64 p-4 rounded-lg hover:bg-white/10 hover:backdrop-blur-sm transition-colors">
             <h2 className="w-full relative flex items-center gap-1 text-sm font-mono uppercase font-medium group-hover:underline transition-colors">
               {name}
               <ArrowUpRight className="size-4 opacity-0 group-hover:opacity-50 transition-opacity" />
@@ -153,7 +147,7 @@ export default function Model() {
             <p className="text-sm text-neutral-400 mt-1">
               {description}
             </p>
-          </motion.div>
+          </div>
         </Link>
       </div>
     </FloatingElement>
@@ -220,19 +214,12 @@ export default function Model() {
           <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-30">
             <g>
               {links.filter(link => link.floating).map((_, index) => (
-                <motion.line
+                <line
                   key={index}
                   ref={el => { lineRefs.current[index] = el }}
                   stroke="white"
-                  strokeWidth=""
+                  strokeWidth="1"
                   vectorEffect="non-scaling-stroke"
-                  initial={{ pathLength: 0, opacity: 1 }}
-                  animate={{ pathLength: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
-                  transition={{
-                    delay: (index * 0.1),
-                    duration: 0.5,
-                    ease: "easeInOut"
-                  }}
                 />
               ))}
             </g>
@@ -252,20 +239,14 @@ export default function Model() {
             ))}
           </Floating>
 
-          <motion.div
+          <div
             ref={centerRef}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
-            transition={{ duration: 0.5 }}
             className={cn(
-              "scale-100 z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 bg-white ring-white ring-2 border-[5px] border-black shadow-2xl aspect-square"
+              "z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 bg-white ring-white ring-2 border-[5px] border-black shadow-2xl aspect-square"
             )}
           />
 
-          <AnimatedModel
-            modelPath="/models/logo2.gltf"
-            onAnimationComplete={() => setModelLoaded(true)}
-          />
+          <BananaModel modelPath="/models/logo2.gltf" />
         </>
       </div>
     </>

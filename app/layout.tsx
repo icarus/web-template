@@ -41,17 +41,17 @@ export default function RootLayout({
         )}
       >
         <main>
-          {pathname !== "/1" && pathname !== "/2" && pathname !== "/4" && <Header />}
+          {pathname !== "/1" && pathname !== "/2" && pathname !== "/4" && pathname !== "/6" && <Header />}
           {children}
           {pathname === "/programa" && (
             <div className="fixed top-0 -z-20 w-screen h-screen">
-              <Image
-                src="/BananaOptimizado5.gif"
+            <Image
+              src="/BananaOptimizado5.gif"
               alt="Banana"
               width={1920}
               height={1080}
               quality={100}
-              className="md:w-full h-full scale-150 md:scale-90 object-contain md:object-cover pointer-events-auto select-none saturate-200 brightness-100"
+              className="md:w-full h-full scale-150 md:scale-90 md:scale-x-[-1] object-contain md:object-cover pointer-events-auto select-none saturate-200 brightness-100"
             />
           </div>
           )}
