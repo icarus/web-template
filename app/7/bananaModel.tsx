@@ -29,6 +29,10 @@ const fragmentShader = `
 
   varying vec2 vUv;
 
+  vec2 lerp(vec2 start, vec2 end, float t) {
+    return start + (end - start) * clamp(t, 0.0, 1.0);
+  }
+
   void main() {
     // Base pixel size and relative gap
     float basePixelSize = 1.5;
@@ -44,47 +48,96 @@ const fragmentShader = `
     // Convert pixel center to screen space
     vec2 screenPos = pixelCenter * resolution;
 
-    // Calculate current and previous mouse vectors
+    // Calculate vectors to current and previous mouse positions
     vec2 toMouse = mousePos - screenPos;
     float distanceToMouse = length(toMouse);
 
-    // Calculate attraction strength
-    float attraction = smoothstep(mouseRadius, 0.0, distanceToMouse) * 0.8;
+    // Calculate mouse movement vector and velocity
+    vec2 mouseVelocity = mousePos - lastMousePos;
+    float velocityMagnitude = length(mouseVelocity);
 
-    // Calculate displacement
-    vec2 displacement = vec2(0.0);
-    if (distanceToMouse < mouseRadius) {
-        // When mouse is near, create immediate attraction
-        // Invert the direction so pixels are pulled from the model towards the cursor
-        displacement = normalize(-toMouse) * attraction * mouseRadius * 2.0;
+    // Animation parameters
+    float attractionStrength = 1.0;      // Base attraction strength
+    float velocityInfluence = 0.8;       // Velocity influence
+    float maxDisplacement = 60.0;        // Reduced maximum displacement to prevent breaking apart
+    float springStrength = 2.5;          // Spring constant for decay
+    float springDamping = 0.75;          // Damping for decay oscillation
+    float springMass = 1.0;              // Mass for decay spring
+    float cohesionStrength = 0.4;        // Strength of neighbor cohesion
+    float maxVelocityLimit = 400.0;      // Limit maximum velocity influence
+
+    // Calculate base attraction
+    vec2 currentPos = screenPos;
+    vec2 targetPos = screenPos;
+
+    // Calculate spring-based decay
+    float normalizedDist = distanceToMouse / mouseRadius;
+    float targetDecay = 1.0 / (1.0 + normalizedDist * normalizedDist);
+
+    // Limit velocity influence for fast movements
+    float cappedVelocityMagnitude = min(velocityMagnitude, maxVelocityLimit);
+    vec2 cappedVelocity = normalize(mouseVelocity) * cappedVelocityMagnitude;
+
+    // Spring physics for decay with velocity limiting
+    float decayVelocity = length(cappedVelocity) * 0.001;
+    float springForce = springStrength * (targetDecay - decayVelocity);
+    float dampingForce = springDamping * decayVelocity;
+    float acceleration = (springForce - dampingForce) / springMass;
+
+    // Final decay with spring physics
+    float attractionFactor = mix(
+        targetDecay,
+        targetDecay + acceleration,
+        smoothstep(0.0, 1.0, cappedVelocityMagnitude * 0.01)
+    );
+    attractionFactor = clamp(attractionFactor, 0.0, 1.0);
+
+    // Calculate direction to mouse with cohesion
+    vec2 direction = normalize(toMouse);
+
+    // Add neighbor cohesion effect
+    vec2 neighborOffset = vec2(totalSize, 0.0);
+    vec2 neighborPos1 = screenPos + neighborOffset;
+    vec2 neighborPos2 = screenPos - neighborOffset;
+    vec2 neighborPos3 = screenPos + vec2(0.0, totalSize);
+    vec2 neighborPos4 = screenPos - vec2(0.0, totalSize);
+
+    // Calculate average neighbor position influence
+    vec2 cohesionForce = vec2(0.0);
+    cohesionForce += normalize(neighborPos1 - screenPos);
+    cohesionForce += normalize(neighborPos2 - screenPos);
+    cohesionForce += normalize(neighborPos3 - screenPos);
+    cohesionForce += normalize(neighborPos4 - screenPos);
+    cohesionForce = normalize(cohesionForce) * cohesionStrength;
+
+    // Blend direction with cohesion
+    direction = normalize(mix(direction, cohesionForce, velocityMagnitude * 0.001));
+
+    // Calculate displacement with limited range
+    float velocityFactor = 1.0 + (cappedVelocityMagnitude * velocityInfluence);
+    float displacement = attractionStrength * mouseRadius * attractionFactor * velocityFactor;
+    displacement = min(displacement, maxDisplacement);
+
+    // Apply attraction with cohesion
+    vec2 attractionOffset = direction * displacement;
+    vec2 velocityOffset = cappedVelocity * velocityInfluence * attractionFactor;
+    attractionOffset = mix(attractionOffset, attractionOffset + velocityOffset, 0.5);
+
+    // Calculate final position with enhanced stability
+    targetPos = screenPos - attractionOffset;
+
+    // Add position constraint to prevent breaking apart
+    vec2 toTarget = targetPos - screenPos;
+    float distanceToTarget = length(toTarget);
+    if (distanceToTarget > maxDisplacement) {
+        targetPos = screenPos + (normalize(toTarget) * maxDisplacement);
     }
 
-    // Calculate decay for return animation
-    float decayDuration = 2.0; // Duration in seconds
-    float decayStart = 0.2; // When to start decay
-
-    // Normalized time for decay (0 to 1)
-    float decayTime = fract(time / decayDuration);
-
-    // Smooth decay curve
-    float decay = 1.0 - (pow(decayTime, 2.0) * (3.0 - 2.0 * decayTime));
-
-    // Apply spring oscillation to decay
-    float springFreq = 2.0;
-    float springDamp = 3.0;
-    float spring = exp(-springDamp * decayTime) * sin(springFreq * decayTime * 6.28318);
-
-    // Combine decay and spring
-    float returnStrength = decay + spring * 0.2;
-
-    // Apply decay to displacement
-    displacement *= max(attraction, returnStrength);
-
-    // Apply displacement to screen position
-    vec2 attractedScreenPos = screenPos + displacement;
+    float springSmoothing = mix(0.3, 0.6, attractionFactor);
+    currentPos = lerp(screenPos, targetPos, springSmoothing);
 
     // Convert back to UV space
-    vec2 attractedUV = attractedScreenPos / resolution;
+    vec2 attractedUV = currentPos / resolution;
 
     // Make pixels perfectly square with relative gaps
     vec2 pixelOffset = fract(vUv * resolution / totalSize);
@@ -122,13 +175,22 @@ const fragmentShader = `
 
 export function BananaModel({
   modelPath,
-  colors = ["#90521D", "#F98912", "#FFEC40"],
+  colors = ["#9C6323", "#F9A341", "#FFEC40"],
 }: ModelProps) {
+  const MOUSE_RADIUS = 50.0;
+
   const containerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
   const rotationAngleRef = useRef(0);
-  const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const mouseRef = useRef<{ x: number; y: number; vx: number; vy: number }>({ x: 0, y: 0, vx: 0, vy: 0 });
+  const targetMouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastFrameTime = useRef(Date.now());
+
+  // Improved spring configuration for heavier animation
+  const SPRING_STIFFNESS = 100;
+  const SPRING_DAMPING = 12;
+  const MASS = 4.0;
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
@@ -137,10 +199,8 @@ export function BananaModel({
   const controlsRef = useRef<OrbitControls | null>(null);
   const postMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
 
-  const resolution = 512+128;
-
-  const timeRef = useRef(0);
-  const lastTimeRef = useRef(Date.now());
+  // Make resolution square for circular proportions
+  const resolution = 640;
 
   // Convert colors to THREE.Vector3 for shader
   const colorVectors = useMemo(() => {
@@ -215,7 +275,7 @@ export function BananaModel({
         colors: { value: colorVectors },
         mousePos: { value: new THREE.Vector2(0, 0) },
         lastMousePos: { value: new THREE.Vector2(0, 0) },
-        mouseRadius: { value: 100.0 },
+        mouseRadius: { value: MOUSE_RADIUS },
         time: { value: 0.0 }
       },
       vertexShader,
@@ -235,15 +295,32 @@ export function BananaModel({
       modelRef.current = model;
     });
 
-    // Define render function
+    // Define render function with lerping
     const render = () => {
       if (!renderer || !scene || !camera || !renderTargetRef.current) return;
 
-      // Update time
+      // Calculate delta time for smooth animations
       const currentTime = Date.now();
-      const deltaTime = (currentTime - lastTimeRef.current) / 1000.0;
-      timeRef.current += deltaTime;
-      lastTimeRef.current = currentTime;
+      const deltaTime = Math.min((currentTime - lastFrameTime.current) / 1000, 0.016); // Cap at ~60fps
+      lastFrameTime.current = currentTime;
+
+      // Spring physics simulation
+      const springForceX = SPRING_STIFFNESS * (targetMouseRef.current.x - mouseRef.current.x);
+      const springForceY = SPRING_STIFFNESS * (targetMouseRef.current.y - mouseRef.current.y);
+
+      const dampingForceX = SPRING_DAMPING * mouseRef.current.vx;
+      const dampingForceY = SPRING_DAMPING * mouseRef.current.vy;
+
+      const accelerationX = (springForceX - dampingForceX) / MASS;
+      const accelerationY = (springForceY - dampingForceY) / MASS;
+
+      // Update velocity
+      mouseRef.current.vx += accelerationX * deltaTime;
+      mouseRef.current.vy += accelerationY * deltaTime;
+
+      // Update position
+      mouseRef.current.x += mouseRef.current.vx * deltaTime;
+      mouseRef.current.y += mouseRef.current.vy * deltaTime;
 
       // Update model rotation
       if (modelRef.current) {
@@ -251,12 +328,13 @@ export function BananaModel({
         modelRef.current.rotation.y = rotationAngleRef.current;
       }
 
-      // Update uniforms
+      // Update shader uniforms with spring-animated mouse position
       if (postMaterialRef.current) {
         const { x, y } = mouseRef.current;
+        postMaterialRef.current.uniforms.lastMousePos.value.copy(postMaterialRef.current.uniforms.mousePos.value);
         postMaterialRef.current.uniforms.mousePos.value.set(x, y);
-        postMaterialRef.current.uniforms.mouseRadius.value = resolution * 0.15;
-        postMaterialRef.current.uniforms.time.value = timeRef.current;
+        postMaterialRef.current.uniforms.mouseRadius.value = MOUSE_RADIUS;
+        postMaterialRef.current.uniforms.time.value += deltaTime;
       }
 
       // Render original scene to texture
@@ -280,12 +358,22 @@ export function BananaModel({
     const handleResize = () => {
       if (!camera || !renderer) return;
 
-      const aspect = window.innerWidth / window.innerHeight;
+      const size = Math.min(window.innerWidth, window.innerHeight);
+      const aspect = 1.0; // Force 1:1 aspect ratio
       camera.left = (frustumSize * aspect) / -2;
       camera.right = (frustumSize * aspect) / 2;
+      camera.top = frustumSize / 2;
+      camera.bottom = -frustumSize / 2;
       camera.updateProjectionMatrix();
 
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(size, size);
+
+      // Center the canvas
+      if (canvasRef.current) {
+        canvasRef.current.style.position = 'absolute';
+        canvasRef.current.style.left = `${(window.innerWidth - size) / 2}px`;
+        canvasRef.current.style.top = `${(window.innerHeight - size) / 2}px`;
+      }
     };
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -296,29 +384,22 @@ export function BananaModel({
       const x = (event.clientX - rect.left) / rect.width * resolution;
       const y = (1.0 - (event.clientY - rect.top) / rect.height) * resolution;
 
-      // Store the current position for next frame's velocity calculation
-      if (postMaterialRef.current) {
-        const currentPos = postMaterialRef.current.uniforms.mousePos.value;
-        postMaterialRef.current.uniforms.lastMousePos.value.set(currentPos.x, currentPos.y);
-        postMaterialRef.current.uniforms.mousePos.value.set(x, y);
-      }
-
-      // Update mouse position
-      mouseRef.current = { x, y };
-      console.log('Mouse position:', { x, y }); // Debug log
+      // Update target mouse position
+      targetMouseRef.current = { x, y };
     };
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Initialize mouse position at center
+    // Initialize mouse and target positions at center
     const centerX = resolution / 2;
     const centerY = resolution / 2;
-    mouseRef.current = { x: centerX, y: centerY };
+    mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
+    targetMouseRef.current = { x: centerX, y: centerY };
     if (postMaterialRef.current) {
       postMaterialRef.current.uniforms.mousePos.value.set(centerX, centerY);
       postMaterialRef.current.uniforms.lastMousePos.value.set(centerX, centerY);
-      postMaterialRef.current.uniforms.mouseRadius.value = resolution * 0.2; // 20% of the resolution
+      postMaterialRef.current.uniforms.mouseRadius.value = MOUSE_RADIUS;
     }
 
     return () => {
@@ -330,7 +411,7 @@ export function BananaModel({
       postQuad.geometry.dispose();
       renderTargetRef.current?.dispose();
     };
-  }, [modelPath, resolution, colorVectors]);
+  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS]);
 
   return (
     <div

@@ -51,8 +51,8 @@ export function Cursor() {
       <motion.div
         className="absolute -translate-x-1/2 -translate-y-1/2"
         animate={{
-          width: isPointer ? 32 : 20,
-          height: isPointer ? 32 : 20,
+          width: isPointer ? 20 : 32,
+          height: isPointer ? 20 : 32,
         }}
         transition={{
           type: "spring",
