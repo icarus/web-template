@@ -240,7 +240,7 @@ export function BananaModel({
     scene.background = null;
 
     const aspect = window.innerWidth / window.innerHeight;
-    const frustumSize = isMobile ? 5 : 5; // Larger frustum for mobile
+    const frustumSize = 5; // Larger frustum for mobile
     const camera = new THREE.OrthographicCamera(
       (frustumSize * aspect) / -2,
       (frustumSize * aspect) / 2,
@@ -313,7 +313,6 @@ export function BananaModel({
     loader.load(modelPath, (gltf) => {
       const model = gltf.scene;
 
-      // Scale the model based on device type
       const scale = isMobile ? 0.6 : 1.0;
       model.scale.set(scale, scale, scale);
 
