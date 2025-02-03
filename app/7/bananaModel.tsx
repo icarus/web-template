@@ -25,6 +25,7 @@ const fragmentShader = `
   uniform vec2 mousePos;
   uniform float mouseRadius;
   uniform vec2 lastMousePos;
+  uniform float time;
 
   varying vec2 vUv;
 
@@ -36,14 +37,54 @@ const fragmentShader = `
     float gap = pixelSize * gapRatio;
     float totalSize = pixelSize + gap;
 
-    // Calculate grid position first
+    // Calculate grid position for pixelation
     vec2 gridPos = floor(vUv * resolution / totalSize);
     vec2 pixelCenter = (gridPos + 0.5) * totalSize / resolution;
 
-    // Sample texture at original position first to check if it's a visible pixel
-    vec4 originalTexel = texture2D(tDiffuse, pixelCenter);
+    // Convert pixel center to screen space
+    vec2 screenPos = pixelCenter * resolution;
 
-    // Removed attraction effect - always use original pixel center
+    // Calculate current and previous mouse vectors
+    vec2 toMouse = mousePos - screenPos;
+    float distanceToMouse = length(toMouse);
+
+    // Calculate attraction strength
+    float attraction = smoothstep(mouseRadius, 0.0, distanceToMouse) * 0.8;
+
+    // Calculate displacement
+    vec2 displacement = vec2(0.0);
+    if (distanceToMouse < mouseRadius) {
+        // When mouse is near, create immediate attraction
+        // Invert the direction so pixels are pulled from the model towards the cursor
+        displacement = normalize(-toMouse) * attraction * mouseRadius * 2.0;
+    }
+
+    // Calculate decay for return animation
+    float decayDuration = 2.0; // Duration in seconds
+    float decayStart = 0.2; // When to start decay
+
+    // Normalized time for decay (0 to 1)
+    float decayTime = fract(time / decayDuration);
+
+    // Smooth decay curve
+    float decay = 1.0 - (pow(decayTime, 2.0) * (3.0 - 2.0 * decayTime));
+
+    // Apply spring oscillation to decay
+    float springFreq = 2.0;
+    float springDamp = 3.0;
+    float spring = exp(-springDamp * decayTime) * sin(springFreq * decayTime * 6.28318);
+
+    // Combine decay and spring
+    float returnStrength = decay + spring * 0.2;
+
+    // Apply decay to displacement
+    displacement *= max(attraction, returnStrength);
+
+    // Apply displacement to screen position
+    vec2 attractedScreenPos = screenPos + displacement;
+
+    // Convert back to UV space
+    vec2 attractedUV = attractedScreenPos / resolution;
 
     // Make pixels perfectly square with relative gaps
     vec2 pixelOffset = fract(vUv * resolution / totalSize);
@@ -58,7 +99,7 @@ const fragmentShader = `
     }
 
     // Sample texture at the attracted position
-    vec4 texel = texture2D(tDiffuse, pixelCenter);
+    vec4 texel = texture2D(tDiffuse, attractedUV);
     if(texel.a < 0.1) {
       discard;
       return;
@@ -87,6 +128,7 @@ export function BananaModel({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
   const rotationAngleRef = useRef(0);
+  const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
@@ -96,6 +138,9 @@ export function BananaModel({
   const postMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
 
   const resolution = 512+128;
+
+  const timeRef = useRef(0);
+  const lastTimeRef = useRef(Date.now());
 
   // Convert colors to THREE.Vector3 for shader
   const colorVectors = useMemo(() => {
@@ -171,13 +216,13 @@ export function BananaModel({
         mousePos: { value: new THREE.Vector2(0, 0) },
         lastMousePos: { value: new THREE.Vector2(0, 0) },
         mouseRadius: { value: 100.0 },
-        deltaTime: { value: 0.0 }
+        time: { value: 0.0 }
       },
       vertexShader,
       fragmentShader,
       transparent: true
     });
-    console.log('Created post-processing material');
+
     postMaterialRef.current = postMaterial;
     const postQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMaterial);
     postScene.add(postQuad);
@@ -194,10 +239,24 @@ export function BananaModel({
     const render = () => {
       if (!renderer || !scene || !camera || !renderTargetRef.current) return;
 
+      // Update time
+      const currentTime = Date.now();
+      const deltaTime = (currentTime - lastTimeRef.current) / 1000.0;
+      timeRef.current += deltaTime;
+      lastTimeRef.current = currentTime;
+
       // Update model rotation
       if (modelRef.current) {
         rotationAngleRef.current += 0.0025;
         modelRef.current.rotation.y = rotationAngleRef.current;
+      }
+
+      // Update uniforms
+      if (postMaterialRef.current) {
+        const { x, y } = mouseRef.current;
+        postMaterialRef.current.uniforms.mousePos.value.set(x, y);
+        postMaterialRef.current.uniforms.mouseRadius.value = resolution * 0.15;
+        postMaterialRef.current.uniforms.time.value = timeRef.current;
       }
 
       // Render original scene to texture
@@ -230,27 +289,37 @@ export function BananaModel({
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      // Convert mouse coordinates to normalized coordinates (0 to 1)
+      const x = (event.clientX - rect.left) / rect.width * resolution;
+      const y = (1.0 - (event.clientY - rect.top) / rect.height) * resolution;
+
+      // Store the current position for next frame's velocity calculation
       if (postMaterialRef.current) {
-        // Store last mouse position for velocity calculation
         const currentPos = postMaterialRef.current.uniforms.mousePos.value;
-        postMaterialRef.current.uniforms.lastMousePos.value.copy(currentPos);
-
-        // Calculate normalized mouse position
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const x = ((event.clientX - rect.left) / rect.width) * resolution;
-        const y = ((rect.height - (event.clientY - rect.top)) / rect.height) * resolution;
-
-        // Smooth mouse movement
-        const smoothFactor = 0.2; // Increased for more responsive movement
-        currentPos.x += (x - currentPos.x) * smoothFactor;
-        currentPos.y += (y - currentPos.y) * smoothFactor;
+        postMaterialRef.current.uniforms.lastMousePos.value.set(currentPos.x, currentPos.y);
+        postMaterialRef.current.uniforms.mousePos.value.set(x, y);
       }
+
+      // Update mouse position
+      mouseRef.current = { x, y };
+      console.log('Mouse position:', { x, y }); // Debug log
     };
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
+
+    // Initialize mouse position at center
+    const centerX = resolution / 2;
+    const centerY = resolution / 2;
+    mouseRef.current = { x: centerX, y: centerY };
+    if (postMaterialRef.current) {
+      postMaterialRef.current.uniforms.mousePos.value.set(centerX, centerY);
+      postMaterialRef.current.uniforms.lastMousePos.value.set(centerX, centerY);
+      postMaterialRef.current.uniforms.mouseRadius.value = resolution * 0.2; // 20% of the resolution
+    }
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -280,7 +349,8 @@ export function BananaModel({
     >
       <canvas
         ref={canvasRef}
-        className="absolute w-full h-full pointer-events-none"
+        className="absolute w-full h-full"
+        style={{ pointerEvents: 'auto' }}
       />
     </div>
   );
