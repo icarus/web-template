@@ -313,7 +313,7 @@ export function BananaModel({
     loader.load(modelPath, (gltf) => {
       const model = gltf.scene;
 
-      const scale = isMobile ? 0.6 : 1.0;
+      const scale = isMobile ? 0.8 : 1.0;
       model.scale.set(scale, scale, scale);
 
       scene.add(model);
@@ -324,41 +324,49 @@ export function BananaModel({
     const render = () => {
       if (!renderer || !scene || !camera || !renderTargetRef.current) return;
 
-      // Calculate delta time for smooth animations
       const currentTime = Date.now();
-      const deltaTime = Math.min((currentTime - lastFrameTime.current) / 1000, 0.016); // Cap at ~60fps
+      const deltaTime = Math.min((currentTime - lastFrameTime.current) / 1000, 0.016);
       lastFrameTime.current = currentTime;
 
-      // Spring physics simulation
-      const springForceX = SPRING_STIFFNESS * (targetMouseRef.current.x - mouseRef.current.x);
-      const springForceY = SPRING_STIFFNESS * (targetMouseRef.current.y - mouseRef.current.y);
+      // On mobile, use automatic animation for mouse position
+      if (isMobile) {
+        const time = currentTime * 0.001; // Convert to seconds
+        const radius = resolution * 0.3;
+        const x = resolution / 2 + Math.cos(time) * radius;
+        const y = resolution / 2 + Math.sin(time) * radius;
 
-      const dampingForceX = SPRING_DAMPING * mouseRef.current.vx;
-      const dampingForceY = SPRING_DAMPING * mouseRef.current.vy;
+        mouseRef.current = { x, y, vx: 0, vy: 0 };
+        targetMouseRef.current = { x, y };
+      } else {
+        // Spring physics simulation for desktop
+        const springForceX = SPRING_STIFFNESS * (targetMouseRef.current.x - mouseRef.current.x);
+        const springForceY = SPRING_STIFFNESS * (targetMouseRef.current.y - mouseRef.current.y);
 
-      const accelerationX = (springForceX - dampingForceX) / MASS;
-      const accelerationY = (springForceY - dampingForceY) / MASS;
+        const dampingForceX = SPRING_DAMPING * mouseRef.current.vx;
+        const dampingForceY = SPRING_DAMPING * mouseRef.current.vy;
 
-      // Update velocity
-      mouseRef.current.vx += accelerationX * deltaTime;
-      mouseRef.current.vy += accelerationY * deltaTime;
+        const accelerationX = (springForceX - dampingForceX) / MASS;
+        const accelerationY = (springForceY - dampingForceY) / MASS;
 
-      // Update position
-      mouseRef.current.x += mouseRef.current.vx * deltaTime;
-      mouseRef.current.y += mouseRef.current.vy * deltaTime;
+        mouseRef.current.vx += accelerationX * deltaTime;
+        mouseRef.current.vy += accelerationY * deltaTime;
+
+        mouseRef.current.x += mouseRef.current.vx * deltaTime;
+        mouseRef.current.y += mouseRef.current.vy * deltaTime;
+      }
 
       // Update model rotation
       if (modelRef.current) {
-        rotationAngleRef.current += 0.0025;
+        rotationAngleRef.current += isMobile ? 0.001 : 0.0025;
         modelRef.current.rotation.y = rotationAngleRef.current;
       }
 
-      // Update shader uniforms with spring-animated mouse position
+      // Update shader uniforms
       if (postMaterialRef.current) {
         const { x, y } = mouseRef.current;
         postMaterialRef.current.uniforms.lastMousePos.value.copy(postMaterialRef.current.uniforms.mousePos.value);
         postMaterialRef.current.uniforms.mousePos.value.set(x, y);
-        postMaterialRef.current.uniforms.mouseRadius.value = MOUSE_RADIUS;
+        postMaterialRef.current.uniforms.mouseRadius.value = isMobile ? MOUSE_RADIUS * 1.5 : MOUSE_RADIUS;
         postMaterialRef.current.uniforms.time.value += deltaTime;
       }
 
@@ -402,14 +410,14 @@ export function BananaModel({
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      if (isMobile) return; // Skip mouse handling on mobile
+
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
 
-      // Convert mouse coordinates to normalized coordinates (0 to 1)
       const x = (event.clientX - rect.left) / rect.width * resolution;
       const y = (1.0 - (event.clientY - rect.top) / rect.height) * resolution;
 
-      // Update target mouse position
       targetMouseRef.current = { x, y };
     };
 
@@ -450,13 +458,15 @@ export function BananaModel({
         right: 0,
         bottom: 0,
         zIndex: 0,
-        pointerEvents: 'all'
+        pointerEvents: isMobile ? 'none' : 'all' // Disable pointer events on mobile
       }}
     >
       <canvas
         ref={canvasRef}
         className="absolute w-full h-full"
-        style={{ pointerEvents: 'auto' }}
+        style={{
+          pointerEvents: isMobile ? 'none' : 'auto' // Disable pointer events on mobile
+        }}
       />
     </div>
   );
