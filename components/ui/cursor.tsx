@@ -19,14 +19,17 @@ export function Cursor() {
     const updateMousePosition = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
 
-      const target = e.target as HTMLElement;
-      setIsPointer(
-        window.getComputedStyle(target).cursor === "pointer" ||
-        target.tagName === "BUTTON" ||
-        target.tagName === "A" ||
-        target.closest("button") !== null ||
-        target.closest("a") !== null
-      );
+      let isPointerActive = false;
+      if (e.target instanceof Element) {
+        const computedCursor = window.getComputedStyle(e.target).cursor;
+        isPointerActive =
+          computedCursor === "pointer" ||
+          e.target.tagName === "BUTTON" ||
+          e.target.tagName === "A" ||
+          e.target.closest("button") !== null ||
+          e.target.closest("a") !== null;
+      }
+      setIsPointer(isPointerActive);
     };
 
     window.addEventListener("mousemove", updateMousePosition);
@@ -38,7 +41,7 @@ export function Cursor() {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 pointer-events-none z-[999] mix-blend-difference"
+      className="hidden md:block fixed top-0 left-0 pointer-events-none z-[999] mix-blend-difference"
       animate={{
         x: mousePosition.x,
         y: mousePosition.y,

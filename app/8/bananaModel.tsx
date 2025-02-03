@@ -4,6 +4,7 @@ import { useEffect, useRef, RefObject, useMemo } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface ModelProps {
   modelPath: string;
@@ -197,6 +198,7 @@ export function BananaModel({
   colors = ["#9C6323", "#F9A341", "#FFEC40"],
 }: ModelProps) {
   const MOUSE_RADIUS = 50.0;
+  const isMobile = useIsMobile();
 
   const containerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -238,7 +240,7 @@ export function BananaModel({
     scene.background = null;
 
     const aspect = window.innerWidth / window.innerHeight;
-    const frustumSize = 5;
+    const frustumSize = isMobile ? 5 : 5; // Larger frustum for mobile
     const camera = new THREE.OrthographicCamera(
       (frustumSize * aspect) / -2,
       (frustumSize * aspect) / 2,
@@ -310,6 +312,11 @@ export function BananaModel({
     const loader = new GLTFLoader();
     loader.load(modelPath, (gltf) => {
       const model = gltf.scene;
+
+      // Scale the model based on device type
+      const scale = isMobile ? 0.6 : 1.0;
+      model.scale.set(scale, scale, scale);
+
       scene.add(model);
       modelRef.current = model;
     });
@@ -411,8 +418,8 @@ export function BananaModel({
     window.addEventListener('mousemove', handleMouseMove);
 
     // Initialize mouse and target positions at center
-    const centerX = resolution / 2;
-    const centerY = resolution / 2;
+    const centerX = resolution * 2;
+    const centerY = resolution * 2;
     mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
     targetMouseRef.current = { x: centerX, y: centerY };
     if (postMaterialRef.current) {
@@ -430,7 +437,7 @@ export function BananaModel({
       postQuad.geometry.dispose();
       renderTargetRef.current?.dispose();
     };
-  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS]);
+  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile]);
 
   return (
     <div

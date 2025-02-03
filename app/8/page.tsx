@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { BananaModel } from "./bananaModel";
 import { Cursor } from "@/components/ui/cursor";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const links = [
   {
     name: "Programa",
     href: "/programa",
     description: "Invertimos $200K USD por el 5,5% de tu startup",
-    position: "top-[15%] right-[5%] md:top-[20%] md:right-[11%]",
+    position: "top-[20%] right-[3%] md:top-[20%] md:right-[11%]",
     depth: 0.5,
     floating: true
   },
@@ -25,7 +26,7 @@ const links = [
     name: "Portafolio",
     href: "/programa",
     description: "Las startups en las que hemos invertido",
-    position: "bottom-[25%] md:top-[35%] left-[50%] md:left-[15%]",
+    position: "top-[65%] md:top-[35%] left-[55%] md:left-[15%]",
     depth: 1,
     floating: true
   },
@@ -42,7 +43,7 @@ const links = [
         name: "Rafael Fernández",
       }
     },
-    position: "bottom-[5%] left-[15%] md:bottom-[7%] md:left-auto md:right-[20%]",
+    position: "bottom-[15%] left-[10%] md:bottom-[7%] md:left-auto md:right-[20%]",
     depth: 2,
     floating: true
   },
@@ -69,6 +70,7 @@ const links = [
 ];
 
 export default function Model() {
+  const isMobile = useIsMobile();
   const centerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lineRefs = useRef<(SVGLineElement | null)[]>([]);
@@ -163,7 +165,7 @@ export default function Model() {
               />
             </h2>
             {blogPost ? (
-              <div className="mt-2">
+              <div className="hidden md:block mt-2">
                 {blogPost.image && (
                   <div className="mt-4 relative w-full aspect-video overflow-hidden rounded-md">
                     <Image
@@ -194,9 +196,9 @@ export default function Model() {
 
   return (
     <>
-      <div className="relative w-screen overflow-hidden h-screen">
+      <Cursor />
+      <div className="relative w-screen overflow-hidden h-svh">
         <>
-          <Cursor />
           <Image
             src="/logo.svg"
             alt="Logo"
@@ -205,7 +207,7 @@ export default function Model() {
             className="absolute top-4 left-4 cursor-none"
           />
 
-          <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-1 cursor-none">
+          <div className="w-full right-0 justify-end z-50 flex flex-wrap p-2 md:p-4 absolute bottom-0 gap-1">
             {links.filter(link => !link.floating).map((link, index) => (
               <Button
                 key={index}
@@ -246,12 +248,9 @@ export default function Model() {
               <span>:</span>
               <span>59s</span>
             </div>
-            <Button variant="outline" size="icon" className="size-7 group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors">
-              <Info />
-            </Button>
           </div>
 
-          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-40">
+          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-20">
             <g>
               {links.filter(link => link.floating).map((_, index) => (
                 <motion.line
@@ -272,7 +271,7 @@ export default function Model() {
             </g>
           </svg>
 
-          <Floating sensitivity={-1} className="z-50 overflow-hidden">
+          <Floating sensitivity={isMobile ? 0 : -1} className="z-50 overflow-hidden">
             {links.filter(link => link.floating).map((link, index) => (
               <FloatingLink
                 key={index}
