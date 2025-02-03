@@ -5,11 +5,12 @@ import Floating from "@/components/fancy/parallax-floating";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Info } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { BananaModel } from "./bananaModel";
+import { Cursor } from "@/components/ui/cursor";
 
 const links = [
   {
@@ -29,10 +30,19 @@ const links = [
     floating: true
   },
   {
-    name: "Equipo",
+    name: "Plata-news",
     href: "/programa",
-    description: "El equipo detrás de Platanus",
-    position: "bottom-[10%] left-[15%] md:bottom-[15%] md:left-auto md:right-[20%]",
+    description: "Las postulaciones para el Batch 24-2 de Platanus cierran el lunes 24 de junio. Será la primera generación con nuestro nuevo deal de $200.000 USD x un 5.5% de tu startup.",
+    blogPost: {
+      title: "Pitches, asado japonés y una voz sospechosa",
+      excerpt: "Las postulaciones para el Batch 24-2 de Platanus cierran el lunes 24 de junio. Será la primera generación con nuestro nuevo deal de $200.000 USD x un 5.5% de tu startup.",
+      date: "2024-07-13",
+      image: "/blog.png",
+      author: {
+        name: "Rafael Fernández",
+      }
+    },
+    position: "bottom-[5%] left-[15%] md:bottom-[7%] md:left-auto md:right-[20%]",
     depth: 2,
     floating: true
   },
@@ -62,7 +72,8 @@ export default function Model() {
   const centerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lineRefs = useRef<(SVGLineElement | null)[]>([]);
-  const [modelLoaded, ] = useState(true);
+  const modelLoaded = true;
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
     const updateLines = () => {
@@ -93,25 +104,16 @@ export default function Model() {
           line.setAttribute('y2', String(squareY));
         }
       });
+
+      rafRef.current = requestAnimationFrame(updateLines);
     };
 
-    let rafId: number;
-
-    // Continuous update loop
-    const animate = () => {
-      updateLines();
-      rafId = requestAnimationFrame(animate);
-    };
-
-    // Start the animation loop
-    animate();
-
-    // Update on resize as well
-    window.addEventListener('resize', updateLines);
+    updateLines();
 
     return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', updateLines);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
     };
   }, []);
 
@@ -121,7 +123,8 @@ export default function Model() {
     description,
     depth,
     position,
-    index
+    index,
+    blogPost
   }: {
     name: string;
     href: string;
@@ -129,6 +132,15 @@ export default function Model() {
     depth?: number;
     position?: string;
     index: number;
+    blogPost?: {
+      title: string;
+      excerpt: string;
+      date: string;
+      image?: string;
+      author: {
+        name: string;
+      }
+    };
   }) => (
     <FloatingElement depth={depth} className={position}>
       <div ref={el => { linkRefs.current[index] = el }}>
@@ -137,7 +149,7 @@ export default function Model() {
             initial={{ opacity: 0 }}
             animate={{ opacity: modelLoaded ? 1 : 0 }}
             transition={{ delay: 0.1 + (index * 0.1) }}
-            className="max-w-64 p-4 rounded-lg hover:bg-white/10 hover:backdrop-blur-sm transition-colors"
+            className="max-w-64 p-4 rounded-lg hover:bg-white/5 hover:backdrop-blur-2xl transition-colors"
           >
             <h2 className="w-full relative flex items-center gap-1 text-sm font-mono uppercase font-medium group-hover:underline transition-colors">
               {name}
@@ -150,9 +162,30 @@ export default function Model() {
                 )}
               />
             </h2>
-            <p className="text-sm text-neutral-400 mt-1">
-              {description}
-            </p>
+            {blogPost ? (
+              <div className="mt-2">
+                {blogPost.image && (
+                  <div className="mt-4 relative w-full aspect-video overflow-hidden rounded-md">
+                    <Image
+                      src={blogPost.image}
+                      alt={blogPost.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <h3 className="mt-3 text-sm font-medium text-white">{blogPost.title}</h3>
+                <p className="mt-1 text-xs text-neutral-400 line-clamp-2 text-ellipsis">{blogPost.excerpt}</p>
+                <Button variant="link" size="sm" className="mt-3 group/blog text-xs gap-1 uppercase font-mono px-0">
+                  Leer más
+                  <ArrowUpRight className="size-4 opacity-0 group-hover/blog:opacity-50 transition-opacity" />
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-400 mt-1">
+                {description}
+              </p>
+            )}
           </motion.div>
         </Link>
       </div>
@@ -163,21 +196,22 @@ export default function Model() {
     <>
       <div className="relative w-screen overflow-hidden h-screen">
         <>
+          <Cursor />
           <Image
             src="/logo.svg"
             alt="Logo"
             width={164}
             height={48}
-            className="absolute top-4 left-4 -rotate-90 origin-top-right -translate-x-full"
+            className="absolute top-4 left-4 cursor-none"
           />
 
-          <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-1">
+          <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-1 cursor-none">
             {links.filter(link => !link.floating).map((link, index) => (
               <Button
                 key={index}
                 variant="outline"
                 size="sm"
-                className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+                className="group cursor-pointer font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
                 asChild
               >
                 <Link href={link.href}>
@@ -217,7 +251,7 @@ export default function Model() {
             </Button>
           </div>
 
-          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-30">
+          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-40">
             <g>
               {links.filter(link => link.floating).map((_, index) => (
                 <motion.line
@@ -238,7 +272,7 @@ export default function Model() {
             </g>
           </svg>
 
-          <Floating sensitivity={-1} className="z-30 overflow-hidden">
+          <Floating sensitivity={-1} className="z-50 overflow-hidden">
             {links.filter(link => link.floating).map((link, index) => (
               <FloatingLink
                 key={index}
@@ -248,10 +282,11 @@ export default function Model() {
                 description={link.description}
                 depth={link.depth}
                 position={link.position}
+                blogPost={link.blogPost}
               />
             ))}
 
-            <FloatingElement depth={0.3} className="z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <FloatingElement depth={0.3} className="z-[51] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
               <motion.div
                 ref={centerRef}
                 initial={{ scale: 0, opacity: 0 }}

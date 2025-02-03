@@ -38,7 +38,7 @@ export function Cursor() {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 pointer-events-none z-[100] mix-blend-difference"
+      className="fixed top-0 left-0 pointer-events-none z-[999] mix-blend-difference"
       animate={{
         x: mousePosition.x,
         y: mousePosition.y,
@@ -51,8 +51,8 @@ export function Cursor() {
       <motion.div
         className="absolute -translate-x-1/2 -translate-y-1/2"
         animate={{
-          width: isPointer ? 48 : 24,
-          height: isPointer ? 48 : 24,
+          width: isPointer ? 32 : 20,
+          height: isPointer ? 32 : 20,
         }}
         transition={{
           type: "spring",
@@ -60,18 +60,9 @@ export function Cursor() {
           damping: 20,
         }}
       >
-        <div className="absolute inset-0 rounded-full border border-white opacity-25" />
+        <div className="absolute inset-0 aspect-square border border-white opacity-25" />
         <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
-          animate={{
-            width: isPointer ? 16 : 8,
-            height: isPointer ? 16 : 8,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 20,
-          }}
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 aspect-square bg-white size-1.5"
         />
       </motion.div>
     </motion.div>
