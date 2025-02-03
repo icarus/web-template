@@ -29,10 +29,19 @@ const links = [
     floating: true
   },
   {
-    name: "Equipo",
+    name: "Plata-news",
     href: "/programa",
-    description: "El equipo detrás de Platanus",
-    position: "bottom-[10%] left-[15%] md:bottom-[15%] md:left-auto md:right-[20%]",
+    description: "Las postulaciones para el Batch 24-2 de Platanus cierran el lunes 24 de junio. Será la primera generación con nuestro nuevo deal de $200.000 USD x un 5.5% de tu startup.",
+    blogPost: {
+      title: "Pitches, asado japonés y una voz sospechosa",
+      excerpt: "Las postulaciones para el Batch 24-2 de Platanus cierran el lunes 24 de junio. Será la primera generación con nuestro nuevo deal de $200.000 USD x un 5.5% de tu startup.",
+      date: "2024-07-13",
+      image: "/blog.png",
+      author: {
+        name: "Rafael Fernández",
+      }
+    },
+    position: "bottom-[5%] left-[15%] md:bottom-[5%] md:left-auto md:right-[20%]",
     depth: 2,
     floating: true
   },
@@ -121,7 +130,8 @@ export default function Model() {
     description,
     depth,
     position,
-    index
+    index,
+    blogPost
   }: {
     name: string;
     href: string;
@@ -129,6 +139,15 @@ export default function Model() {
     depth?: number;
     position?: string;
     index: number;
+    blogPost?: {
+      title: string;
+      excerpt: string;
+      date: string;
+      image?: string;
+      author: {
+        name: string;
+      }
+    };
   }) => (
     <FloatingElement depth={depth} className={position}>
       <div ref={el => { linkRefs.current[index] = el }}>
@@ -150,9 +169,30 @@ export default function Model() {
                 )}
               />
             </h2>
-            <p className="text-sm text-neutral-400 mt-1">
-              {description}
-            </p>
+            {blogPost ? (
+              <div className="mt-2">
+                {blogPost.image && (
+                  <div className="mt-4 relative w-full aspect-video overflow-hidden rounded-md">
+                    <Image
+                      src={blogPost.image}
+                      alt={blogPost.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <h3 className="mt-3 text-sm font-medium text-white">{blogPost.title}</h3>
+                <p className="mt-1 text-xs text-neutral-400 line-clamp-2 text-ellipsis">{blogPost.excerpt}</p>
+                <Button variant="link" size="sm" className="mt-3 group/blog text-xs gap-1 uppercase font-mono px-0">
+                  Leer más
+                  <ArrowUpRight className="size-4 opacity-0 group-hover/blog:opacity-50 transition-opacity" />
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-400 mt-1">
+                {description}
+              </p>
+            )}
           </motion.div>
         </Link>
       </div>
@@ -168,8 +208,15 @@ export default function Model() {
             alt="Logo"
             width={164}
             height={48}
-            className="absolute top-4 left-4 -rotate-90 origin-top-right -translate-x-full"
+            className="absolute top-4 left-4"
           />
+          {/* <Image
+            src="/logo.svg"
+            alt="Logo"
+            width={164}
+            height={48}
+            className="absolute top-4 left-4 -rotate-90 origin-top-right -translate-x-full"
+          /> */}
 
           <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-1">
             {links.filter(link => !link.floating).map((link, index) => (
@@ -248,6 +295,7 @@ export default function Model() {
                 description={link.description}
                 depth={link.depth}
                 position={link.position}
+                blogPost={link.blogPost}
               />
             ))}
 
