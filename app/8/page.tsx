@@ -149,7 +149,7 @@ export default function Model() {
             initial={{ opacity: 0 }}
             animate={{ opacity: modelLoaded ? 1 : 0 }}
             transition={{ delay: 0.1 + (index * 0.1) }}
-            className="max-w-64 p-4 rounded-lg hover:bg-white/5 hover:backdrop-blur-2xl transition-colors"
+            className="max-w-64 p-4 rounded-lg hover:bg-white/5 hover:backdrop-blur-lg transition-colors"
           >
             <h2 className="w-full relative flex items-center gap-1 text-sm font-mono uppercase font-medium group-hover:underline transition-colors">
               {name}
