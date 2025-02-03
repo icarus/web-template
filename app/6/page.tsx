@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { BananaModel } from "./bananaModel";
+import { Cursor } from "@/components/ui/cursor";
 
 const links = [
   {
@@ -201,8 +202,9 @@ export default function Model() {
 
   return (
     <>
-      <div className="relative w-screen overflow-hidden h-screen">
+      <div className="relative w-screen overflow-hidden h-screen cursor-none">
         <>
+          <Cursor />
           <Image
             src="/logo.svg"
             alt="Logo"
@@ -264,7 +266,7 @@ export default function Model() {
             </Button>
           </div>
 
-          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-30">
+          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-40">
             <g>
               {links.filter(link => link.floating).map((_, index) => (
                 <motion.line
@@ -285,7 +287,7 @@ export default function Model() {
             </g>
           </svg>
 
-          <Floating sensitivity={-1} className="z-30 overflow-hidden">
+          <Floating sensitivity={-1} className="z-50 overflow-hidden">
             {links.filter(link => link.floating).map((link, index) => (
               <FloatingLink
                 key={index}
@@ -299,7 +301,7 @@ export default function Model() {
               />
             ))}
 
-            <FloatingElement depth={0.3} className="z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <FloatingElement depth={0.3} className="z-[51] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
               <motion.div
                 ref={centerRef}
                 initial={{ scale: 0, opacity: 0 }}
