@@ -171,7 +171,7 @@ export default function Model() {
             className="absolute top-4 left-4 -rotate-90 origin-top-right -translate-x-full"
           />
 
-          <div className="w-full right-3 justify-end z-50 flex p-4 absolute bottom-0 gap-1">
+          <div className="w-full right-3 justify-end z-50 flex flex-wrap p-4 absolute bottom-0 gap-1">
             {links.filter(link => !link.floating).map((link, index) => (
               <Button
                 key={index}
