@@ -357,7 +357,7 @@ export function BananaModel({
 
       // Update model rotation
       if (modelRef.current) {
-        rotationAngleRef.current += isMobile ? 0.001 : 0.0025;
+        rotationAngleRef.current += 0.0025;
         modelRef.current.rotation.y = rotationAngleRef.current;
       }
 
