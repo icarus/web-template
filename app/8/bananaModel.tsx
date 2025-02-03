@@ -328,15 +328,12 @@ export function BananaModel({
       const deltaTime = Math.min((currentTime - lastFrameTime.current) / 1000, 0.016);
       lastFrameTime.current = currentTime;
 
-      // On mobile, use automatic animation for mouse position
+      // On mobile, use fixed center position
       if (isMobile) {
-        const time = currentTime * 0.001; // Convert to seconds
-        const radius = resolution * 0.3;
-        const x = resolution / 2 + Math.cos(time) * radius;
-        const y = resolution / 2 + Math.sin(time) * radius;
-
-        mouseRef.current = { x, y, vx: 0, vy: 0 };
-        targetMouseRef.current = { x, y };
+        const centerX = -200;
+        const centerY = -200;
+        mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
+        targetMouseRef.current = { x: centerX, y: centerY };
       } else {
         // Spring physics simulation for desktop
         const springForceX = SPRING_STIFFNESS * (targetMouseRef.current.x - mouseRef.current.x);
@@ -366,7 +363,7 @@ export function BananaModel({
         const { x, y } = mouseRef.current;
         postMaterialRef.current.uniforms.lastMousePos.value.copy(postMaterialRef.current.uniforms.mousePos.value);
         postMaterialRef.current.uniforms.mousePos.value.set(x, y);
-        postMaterialRef.current.uniforms.mouseRadius.value = isMobile ? MOUSE_RADIUS * 1.5 : MOUSE_RADIUS;
+        postMaterialRef.current.uniforms.mouseRadius.value = MOUSE_RADIUS;
         postMaterialRef.current.uniforms.time.value += deltaTime;
       }
 
@@ -410,7 +407,7 @@ export function BananaModel({
     };
 
     const handleMouseMove = (event: MouseEvent) => {
-      if (isMobile) return; // Skip mouse handling on mobile
+      if (isMobile) return; // Skip all mouse handling on mobile
 
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -421,12 +418,14 @@ export function BananaModel({
       targetMouseRef.current = { x, y };
     };
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('mousemove', handleMouseMove);
+    // Only add mouse events if not mobile
+    if (!isMobile) {
+      window.addEventListener('mousemove', handleMouseMove);
+    }
 
     // Initialize mouse and target positions at center
-    const centerX = resolution * 2;
-    const centerY = resolution * 2;
+    const centerX = resolution / 2;
+    const centerY = resolution / 2;
     mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
     targetMouseRef.current = { x: centerX, y: centerY };
     if (postMaterialRef.current) {
@@ -436,8 +435,10 @@ export function BananaModel({
     }
 
     return () => {
+      if (!isMobile) {
+        window.removeEventListener('mousemove', handleMouseMove);
+      }
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('mousemove', handleMouseMove);
       renderer.dispose();
       controls.dispose();
       postMaterial.dispose();
@@ -458,14 +459,15 @@ export function BananaModel({
         right: 0,
         bottom: 0,
         zIndex: 0,
-        pointerEvents: isMobile ? 'none' : 'all' // Disable pointer events on mobile
+        pointerEvents: isMobile ? 'none' : 'all'
       }}
     >
       <canvas
         ref={canvasRef}
         className="absolute w-full h-full"
         style={{
-          pointerEvents: isMobile ? 'none' : 'auto' // Disable pointer events on mobile
+          pointerEvents: isMobile ? 'none' : 'auto',
+          touchAction: isMobile ? 'none' : 'auto'
         }}
       />
     </div>
