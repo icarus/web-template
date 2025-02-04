@@ -41,9 +41,8 @@ const fragmentShader = `
   }
 
   void main() {
-    // Base pixel size and relative gap
-    float basePixelSize = 1.5;
-    float gapRatio = 2.0;
+    float basePixelSize = 1.2;
+    float gapRatio = 1.5;
     float pixelSize = basePixelSize;
     float gap = pixelSize * gapRatio;
     float totalSize = pixelSize + gap;
@@ -67,20 +66,20 @@ const fragmentShader = `
     float uniqueOffset = hash(gridPos) * 2.0 - 1.0;
     float timeOffset = time * (0.5 + hash(gridPos) * 0.5);
 
-    // Animation parameters with per-pixel variation
-    float attractionStrength = 1.0 + uniqueOffset * 0.2;
-    float velocityInfluence = 0.8 * (1.0 + sin(timeOffset) * 0.2);
-    float maxDisplacement = 60.0 * (0.8 + hash(gridPos) * 0.4);
-    float springStrength = 2.5 * (1.0 + uniqueOffset * 0.3);
-    float springDamping = 0.75 * (0.9 + hash(gridPos) * 0.2);
-    float springMass = 1.0 + hash(gridPos) * 0.5;
-    float cohesionStrength = 0.4 * (1.0 + sin(timeOffset * 0.5) * 0.3);
-    float maxVelocityLimit = 400.0;
+    // Reduced animation parameters
+    float attractionStrength = 0.6 + uniqueOffset * 0.1;
+    float velocityInfluence = 0.4 * (1.0 + sin(timeOffset) * 0.1);
+    float maxDisplacement = 30.0 * (0.8 + hash(gridPos) * 0.2);
+    float springStrength = 1.5 * (1.0 + uniqueOffset * 0.2);
+    float springDamping = 0.85 * (0.9 + hash(gridPos) * 0.1);
+    float springMass = 1.5 + hash(gridPos) * 0.3;
+    float cohesionStrength = 0.2 * (1.0 + sin(timeOffset * 0.5) * 0.2);
+    float maxVelocityLimit = 200.0;
 
-    // Add subtle oscillation to each pixel
+    // Reduced oscillation
     vec2 oscillation = vec2(
-      sin(timeOffset + gridPos.x * 0.1) * 2.0,
-      cos(timeOffset + gridPos.y * 0.1) * 2.0
+      sin(timeOffset + gridPos.x * 0.05) * 1.0,
+      cos(timeOffset + gridPos.y * 0.05) * 1.0
     );
 
     // Calculate base attraction with per-pixel variation
@@ -208,10 +207,10 @@ export function BananaModel({
   const targetMouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastFrameTime = useRef(Date.now());
 
-  // Improved spring configuration for heavier animation
-  const SPRING_STIFFNESS = 100;
-  const SPRING_DAMPING = 12;
-  const MASS = 4.0;
+  // Reduced spring values for subtler movement
+  const SPRING_STIFFNESS = 50;
+  const SPRING_DAMPING = 8;
+  const MASS = 5.0;
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);

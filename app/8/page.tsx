@@ -199,13 +199,15 @@ export default function Model() {
       <Cursor />
       <div className="relative w-screen overflow-hidden h-svh">
         <>
-          <Image
-            src="/logo.svg"
-            alt="Logo"
-            width={164}
-            height={48}
-            className="absolute top-4 left-4 cursor-none"
-          />
+          <Link href="/">
+            <Image
+              src="/logo.svg"
+              alt="Logo"
+              width={164}
+              height={48}
+              className="z-50 absolute top-4 left-4 cursor-none"
+            />
+          </Link>
 
           <div className="w-full right-0 justify-end z-50 flex flex-wrap p-2 md:p-4 absolute bottom-0 gap-1">
             {links.filter(link => !link.floating).map((link, index) => (
@@ -250,14 +252,29 @@ export default function Model() {
             </div>
           </div>
 
-          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-20">
+          <Floating sensitivity={isMobile ? 0 : -1} className="z-[40] overflow-hidden">
+            {links.filter(link => link.floating).map((link, index) => (
+              <FloatingLink
+                key={index}
+                index={index}
+                name={link.name}
+                href={link.href}
+                description={link.description}
+                depth={link.depth}
+                position={link.position}
+                blogPost={link.blogPost}
+              />
+            ))}
+          </Floating>
+
+          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-[45]">
             <g>
               {links.filter(link => link.floating).map((_, index) => (
                 <motion.line
                   key={index}
                   ref={el => { lineRefs.current[index] = el }}
                   stroke="white"
-                  strokeWidth=""
+                  strokeWidth="1"
                   vectorEffect="non-scaling-stroke"
                   initial={{ pathLength: 0, opacity: 1 }}
                   animate={{ pathLength: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
@@ -271,21 +288,8 @@ export default function Model() {
             </g>
           </svg>
 
-          <Floating sensitivity={isMobile ? 0 : -1} className="z-50 overflow-hidden">
-            {links.filter(link => link.floating).map((link, index) => (
-              <FloatingLink
-                key={index}
-                index={index}
-                name={link.name}
-                href={link.href}
-                description={link.description}
-                depth={link.depth}
-                position={link.position}
-                blogPost={link.blogPost}
-              />
-            ))}
-
-            <FloatingElement depth={0.3} className="z-[51] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="z-[60] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <FloatingElement depth={0.3}>
               <motion.div
                 ref={centerRef}
                 initial={{ scale: 0, opacity: 0 }}
@@ -296,7 +300,7 @@ export default function Model() {
                 )}
               />
             </FloatingElement>
-          </Floating>
+          </div>
 
           <BananaModel
             modelPath="/models/logo2.gltf"

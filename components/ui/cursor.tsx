@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 export function Cursor() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isPointer, setIsPointer] = useState(false);
+  const [isInactive, setIsInactive] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(false);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -16,8 +18,19 @@ export function Cursor() {
     `;
     document.head.appendChild(style);
 
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetInactivityTimer = () => {
+      clearTimeout(inactivityTimer);
+      setIsInactive(false);
+      inactivityTimer = setTimeout(() => {
+        setIsInactive(true);
+      }, 5000);
+    };
+
     const updateMousePosition = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
+      resetInactivityTimer();
 
       let isPointerActive = false;
       if (e.target instanceof Element) {
@@ -32,10 +45,22 @@ export function Cursor() {
       setIsPointer(isPointerActive);
     };
 
+    const handleMouseDown = () => setIsMouseDown(true);
+    const handleMouseUp = () => setIsMouseDown(false);
+
     window.addEventListener("mousemove", updateMousePosition);
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    // Start the initial inactivity timer
+    resetInactivityTimer();
+
     return () => {
       window.removeEventListener("mousemove", updateMousePosition);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
       document.head.removeChild(style);
+      clearTimeout(inactivityTimer);
     };
   }, []);
 
@@ -54,8 +79,8 @@ export function Cursor() {
       <motion.div
         className="absolute -translate-x-1/2 -translate-y-1/2"
         animate={{
-          width: isPointer ? 20 : 32,
-          height: isPointer ? 20 : 32,
+          width: isPointer || isInactive || isMouseDown ? 20 : 32,
+          height: isPointer || isInactive || isMouseDown ? 20 : 32,
         }}
         transition={{
           type: "spring",
