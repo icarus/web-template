@@ -41,8 +41,8 @@ const fragmentShader = `
   }
 
   void main() {
-    float basePixelSize = 1.2;
-    float gapRatio = 1.5;
+    float basePixelSize = 1.5;
+    float gapRatio = 2.0;
     float pixelSize = basePixelSize;
     float gap = pixelSize * gapRatio;
     float totalSize = pixelSize + gap;
@@ -192,7 +192,7 @@ const fragmentShader = `
   }
 `;
 
-export function BananaModel({
+export function FinalModel({
   modelPath,
   colors = ["#9C6323", "#F9A341", "#FFEC40"],
 }: ModelProps) {
@@ -207,10 +207,10 @@ export function BananaModel({
   const targetMouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastFrameTime = useRef(Date.now());
 
-  // Reduced spring values for subtler movement
-  const SPRING_STIFFNESS = 50;
-  const SPRING_DAMPING = 8;
-  const MASS = 5.0;
+  // Improved spring configuration for heavier animation
+  const SPRING_STIFFNESS = 100;
+  const SPRING_DAMPING = 12;
+  const MASS = 4.0;
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
@@ -220,7 +220,7 @@ export function BananaModel({
   const postMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
 
   // Make resolution square for circular proportions
-  const resolution = 640;
+  const resolution = 512;
 
   // Convert colors to THREE.Vector3 for shader
   const colorVectors = useMemo(() => {
@@ -239,7 +239,7 @@ export function BananaModel({
     scene.background = null;
 
     const aspect = window.innerWidth / window.innerHeight;
-    const frustumSize = 5; // Larger frustum for mobile
+    const frustumSize = 5;
     const camera = new THREE.OrthographicCamera(
       (frustumSize * aspect) / -2,
       (frustumSize * aspect) / 2,
@@ -376,12 +376,15 @@ export function BananaModel({
         renderer.setRenderTarget(null);
         renderer.render(postScene, postCamera);
       }
-
-      requestAnimationFrame(render);
     };
 
     // Start rendering
-    render();
+    let animationFrameId: number;
+    const animate = () => {
+      render();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    animate();
     console.log('Started render loop');
 
     const handleResize = () => {
@@ -433,7 +436,13 @@ export function BananaModel({
       postMaterialRef.current.uniforms.mouseRadius.value = MOUSE_RADIUS;
     }
 
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Call immediately to set initial size
+
     return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       if (!isMobile) {
         window.removeEventListener('mousemove', handleMouseMove);
       }
@@ -443,6 +452,15 @@ export function BananaModel({
       postMaterial.dispose();
       postQuad.geometry.dispose();
       renderTargetRef.current?.dispose();
+
+      // Clear refs
+      sceneRef.current = null;
+      cameraRef.current = null;
+      rendererRef.current = null;
+      renderTargetRef.current = null;
+      modelRef.current = null;
+      controlsRef.current = null;
+      postMaterialRef.current = null;
     };
   }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile]);
 
@@ -466,7 +484,9 @@ export function BananaModel({
         className="absolute w-full h-full"
         style={{
           pointerEvents: isMobile ? 'none' : 'auto',
-          touchAction: isMobile ? 'none' : 'auto'
+          touchAction: isMobile ? 'none' : 'auto',
+          opacity: 1,
+          zIndex: 1
         }}
       />
     </div>

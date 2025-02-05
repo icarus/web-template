@@ -9,7 +9,7 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { BananaModel } from "./bananaModel";
+import { FinalModel } from "./final-model";
 import { Cursor } from "@/components/ui/cursor";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -302,7 +302,7 @@ export default function Model() {
             </FloatingElement>
           </div>
 
-          <BananaModel
+          <FinalModel
             modelPath="/models/logo2.gltf"
           />
         </>

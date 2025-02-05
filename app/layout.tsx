@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import Header from "@/components/layout/header";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { FinalModel } from "./8/final-model";
 
 const vcr = localFont({
   src: "../fonts/VCR_OSD_MONO.ttf",
@@ -44,16 +45,11 @@ export default function RootLayout({
           {pathname === "/" || pathname === "/3" && <Header />}
           {children}
           {pathname === "/programa" && (
-            <div className="fixed top-0 -z-20 w-screen h-screen">
-            <Image
-              src="/BananaOptimizado5.gif"
-              alt="Banana"
-              width={1920}
-              height={1080}
-              quality={100}
-              className="md:w-full h-full scale-150 md:scale-90 md:scale-x-[-1] object-contain md:object-cover pointer-events-auto select-none saturate-200 brightness-100"
-            />
-          </div>
+            <div className="fixed top-0 -z-20 w-screen h-screen pointer-events-none">
+              <FinalModel
+                modelPath="/models/logo2.gltf"
+              />
+            </div>
           )}
         </main>
       </body>
