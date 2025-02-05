@@ -206,7 +206,8 @@ export function FinalModel({
       canvas: canvasRef.current,
       alpha: true,
       antialias: true,
-      premultipliedAlpha: false,
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: true
     });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -427,7 +428,7 @@ export function FinalModel({
   return (
     <div
       ref={containerRef}
-      className="w-screen h-screen mx-auto fixed touch-none bg-black"
+      className="w-screen h-screen mx-auto fixed touch-none"
       style={{
         pointerEvents: isMobile || disableMouseInteractions ? 'none' : 'all',
         visibility: isLoaded ? 'visible' : 'hidden',
@@ -435,7 +436,7 @@ export function FinalModel({
     >
       <canvas
         ref={canvasRef}
-        className="absolute w-full h-full bg-black"
+        className="absolute w-full h-full"
         style={{
           pointerEvents: isMobile || disableMouseInteractions ? 'none' : 'auto',
           touchAction: isMobile || disableMouseInteractions ? 'none' : 'auto',
