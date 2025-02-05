@@ -10,6 +10,11 @@ import { usePathname } from "next/navigation";
 interface ModelProps {
   modelPath: string;
   colors?: string[];
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>;
+  rotationSpeed?: number;
+  pixelSize?: number;
+  gapRatio?: number;
+  customResolution?: number;
 }
 
 const vertexShader = `
@@ -32,6 +37,8 @@ const fragmentShader = `
   uniform float mouseRadius;
   uniform vec2 lastMousePos;
   uniform float time;
+  uniform float uPixelSize;
+  uniform float uGapRatio;
 
   varying vec2 vUv;
   varying float vDepth;
@@ -47,10 +54,8 @@ const fragmentShader = `
   }
 
   void main() {
-    float basePixelSize = 1.5;
-    float gapRatio = 2.0;
-    float pixelSize = basePixelSize;
-    float gap = pixelSize * gapRatio;
+    float pixelSize = uPixelSize;
+    float gap = pixelSize * uGapRatio;
     float totalSize = pixelSize + gap;
 
     // Calculate grid position for pixelation
@@ -134,7 +139,17 @@ const fragmentShader = `
 export function FinalModel({
   modelPath,
   colors = ["#9C6323", "#F9A341", "#FFEC40"],
+  canvasRef: externalCanvasRef,
+  rotationSpeed,
+  pixelSize,
+  gapRatio,
+  customResolution
 }: ModelProps) {
+  const effectiveRotationSpeed = rotationSpeed ?? 0.0025;
+  const effectivePixelSize = pixelSize ?? 1.5;
+  const effectiveGapRatio = gapRatio ?? 2.0;
+  const effectiveResolution = customResolution ?? 512;
+
   const MOUSE_RADIUS = 50.0;
   const isMobile = useIsMobile();
   const pathname = usePathname();
@@ -142,7 +157,8 @@ export function FinalModel({
   const [isLoaded, setIsLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const defaultCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = externalCanvasRef || defaultCanvasRef;
   const modelRef = useRef<THREE.Group | null>(null);
   const rotationAngleRef = useRef(0);
   const mouseRef = useRef<{ x: number; y: number; vx: number; vy: number }>({ x: 0, y: 0, vx: 0, vy: 0 });
@@ -160,7 +176,7 @@ export function FinalModel({
   const controlsRef = useRef<OrbitControls | null>(null);
   const postMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
 
-  const resolution = 512;
+  const resolution = effectiveResolution;
 
   const colorVectors = useMemo(() => {
     return colors.map(color => {
@@ -246,7 +262,9 @@ export function FinalModel({
         mousePos: { value: new THREE.Vector2(centerX, centerY) },
         lastMousePos: { value: new THREE.Vector2(centerX, centerY) },
         mouseRadius: { value: MOUSE_RADIUS },
-        time: { value: 0.0 }
+        time: { value: 0.0 },
+        uPixelSize: { value: effectivePixelSize },
+        uGapRatio: { value: effectiveGapRatio }
       },
       vertexShader,
       fragmentShader,
@@ -275,7 +293,7 @@ export function FinalModel({
       const centerY = resolution / 2;
 
       if (modelRef.current) {
-        rotationAngleRef.current += 0.0025;
+        rotationAngleRef.current += effectiveRotationSpeed;
         modelRef.current.rotation.y = rotationAngleRef.current;
       }
 
@@ -423,7 +441,7 @@ export function FinalModel({
       controlsRef.current = null;
       postMaterialRef.current = null;
     };
-  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile, disableMouseInteractions]);
+  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile, disableMouseInteractions, effectivePixelSize, effectiveGapRatio, effectiveRotationSpeed]);
 
   return (
     <div
