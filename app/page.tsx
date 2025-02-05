@@ -149,7 +149,7 @@ export default function Model() {
             initial={{ opacity: 0 }}
             animate={{ opacity: modelLoaded ? 1 : 0 }}
             transition={{ delay: 0.1 + (index * 0.1) }}
-            className="max-w-64 p-4 rounded-lg hover:bg-white/5 hover:backdrop-blur-lg transition-colors"
+            className="max-w-64 p-4 rounded-lg md:hover:bg-white/5 md:hover:backdrop-blur-lg transition-colors"
           >
             <h2 className="w-full relative flex items-center gap-1 text-sm font-mono uppercase font-medium group-hover:underline transition-colors">
               {name}
@@ -209,7 +209,7 @@ export default function Model() {
               key={index}
               variant="outline"
               size="sm"
-              className="group cursor-pointer font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+              className="md:group cursor-pointer font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
               asChild
             >
               <Link href={link.href}>
@@ -227,7 +227,7 @@ export default function Model() {
           <Button
             variant="outline"
             size="sm"
-            className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+            className="md:group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
           >
             <div className="relative mr-1 size-1 flex items-center justify-center">
               <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />

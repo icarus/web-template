@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export default function Programa() {
   return (
-    <BlurFade delay={0.15} className="mt-40 text-white mx-auto max-w-screen-xl">
+    <BlurFade delay={0.15} className="mt-48 text-white mx-auto max-w-screen-xl">
       <div className="flex flex-col gap-16 md:gap-24 pb-32 max-w-screen-lg mx-auto w-full px-6">
         <BlurFade className="text-3xl md:text-5xl leading-normal text-balance">
           Invertimos $200,000 USD por el 5,5% de tu startup.
