@@ -4,12 +4,12 @@ import Image from "next/image";
 
 export default function Programa() {
   return (
-    <BlurFade delay={0.15} className="mt-48 text-white mx-auto max-w-screen-xl">
+    <BlurFade delay={0.4} className="mt-48 text-white mx-auto max-w-screen-xl">
       <div className="flex flex-col gap-16 md:gap-24 pb-32 max-w-screen-lg mx-auto w-full px-6">
         <BlurFade className="text-3xl md:text-5xl leading-normal text-balance">
           Invertimos $200,000 USD por el 5,5% de tu startup.
         </BlurFade>
-        <BlurFade delay={0.15} className="grid grid-cols-1 md:grid-cols-2 gap-16">
+        <BlurFade delay={0.55} className="grid grid-cols-1 md:grid-cols-2 gap-16">
           <div className="flex flex-col gap-2">
             Las postulaciones ya abrieron
             <Button variant="white" className="mt-4">
@@ -30,7 +30,7 @@ export default function Programa() {
         </BlurFade>
       </div>
 
-      <BlurFade delay={0.3} className="grid grid-cols-2 md:grid-cols-4 py-24 max-w-screen-lg mx-auto w-full">
+      <BlurFade delay={1} className="grid grid-cols-2 md:grid-cols-4 py-24 max-w-screen-lg mx-auto w-full">
         {requirements.map((item, index) => (
           <div key={index} className="flex flex-col gap-4 p-4 md:p-6">
             {item.icon}
