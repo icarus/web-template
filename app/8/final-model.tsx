@@ -66,97 +66,28 @@ const fragmentShader = `
     float uniqueOffset = hash(gridPos) * 2.0 - 1.0;
     float timeOffset = time * (0.5 + hash(gridPos) * 0.5);
 
-    // Reduced animation parameters
-    float attractionStrength = 0.6 + uniqueOffset * 0.1;
-    float velocityInfluence = 0.4 * (1.0 + sin(timeOffset) * 0.1);
-    float maxDisplacement = 30.0 * (0.8 + hash(gridPos) * 0.2);
-    float springStrength = 1.5 * (1.0 + uniqueOffset * 0.2);
-    float springDamping = 0.85 * (0.9 + hash(gridPos) * 0.1);
-    float springMass = 1.5 + hash(gridPos) * 0.3;
-    float cohesionStrength = 0.2 * (1.0 + sin(timeOffset * 0.5) * 0.2);
-    float maxVelocityLimit = 200.0;
-
-    // Reduced oscillation
-    vec2 oscillation = vec2(
-      sin(timeOffset + gridPos.x * 0.05) * 1.0,
-      cos(timeOffset + gridPos.y * 0.05) * 1.0
-    );
-
     // Calculate base attraction with per-pixel variation
     vec2 currentPos = screenPos;
     vec2 targetPos = screenPos;
 
-    // Calculate spring-based decay with unique characteristics
-    float normalizedDist = distanceToMouse / (mouseRadius * (1.0 + uniqueOffset * 0.2));
-    float targetDecay = 1.0 / (1.0 + normalizedDist * normalizedDist);
-    targetDecay *= 1.0 + sin(timeOffset) * 0.2;
+    // Soften the attraction decay
+    float normalizedDist = distanceToMouse / (mouseRadius * (1.0 + uniqueOffset * 0.1));
+    float targetDecay = 1.0 / (1.0 + normalizedDist * normalizedDist * 2.0);
+    targetDecay *= 0.8 + sin(timeOffset) * 0.1;
 
-    // Limit velocity influence for fast movements
-    float cappedVelocityMagnitude = min(velocityMagnitude, maxVelocityLimit);
-    vec2 cappedVelocity = normalize(mouseVelocity) * cappedVelocityMagnitude;
+    // Reduce default movement amplitude
+    float defaultMovement = sin(timeOffset + gridPos.x * 0.1) * cos(timeOffset + gridPos.y * 0.1) * 1.0;
 
-    // Spring physics for decay with velocity limiting and per-pixel variation
-    float decayVelocity = length(cappedVelocity) * 0.001 * (1.0 + uniqueOffset * 0.2);
-    float springForce = springStrength * (targetDecay - decayVelocity);
-    float dampingForce = springDamping * decayVelocity;
-    float acceleration = (springForce - dampingForce) / springMass;
+    // Calculate direction with default movement
+    vec2 direction = normalize(toMouse + vec2(cos(timeOffset), sin(timeOffset)) * 0.5);
+    float displacement = max(defaultMovement, targetDecay * mouseRadius * 0.7);
 
-    // Final decay with spring physics and unique behavior
-    float attractionFactor = mix(
-        targetDecay,
-        targetDecay + acceleration,
-        smoothstep(0.0, 1.0, cappedVelocityMagnitude * 0.01)
-    );
-    attractionFactor = clamp(attractionFactor, 0.0, 1.0);
-    attractionFactor *= 1.0 + sin(timeOffset * 0.5) * 0.1;
-
-    // Calculate direction to mouse with cohesion and per-pixel variation
-    vec2 direction = normalize(toMouse + oscillation);
-
-    // Add neighbor cohesion effect with unique offsets
-    vec2 neighborOffset = vec2(totalSize, 0.0) * (1.0 + uniqueOffset * 0.1);
-    vec2 neighborPos1 = screenPos + neighborOffset;
-    vec2 neighborPos2 = screenPos - neighborOffset;
-    vec2 neighborPos3 = screenPos + vec2(0.0, totalSize) * (1.0 + uniqueOffset * 0.1);
-    vec2 neighborPos4 = screenPos - vec2(0.0, totalSize) * (1.0 + uniqueOffset * 0.1);
-
-    // Calculate average neighbor position influence with variation
-    vec2 cohesionForce = vec2(0.0);
-    cohesionForce += normalize(neighborPos1 - screenPos + oscillation * 0.5);
-    cohesionForce += normalize(neighborPos2 - screenPos - oscillation * 0.5);
-    cohesionForce += normalize(neighborPos3 - screenPos + oscillation * 0.3);
-    cohesionForce += normalize(neighborPos4 - screenPos - oscillation * 0.3);
-    cohesionForce = normalize(cohesionForce) * cohesionStrength;
-
-    // Blend direction with cohesion and unique movement
-    direction = normalize(mix(direction, cohesionForce, velocityMagnitude * 0.001 * (1.0 + uniqueOffset * 0.2)));
-
-    // Calculate displacement with limited range and per-pixel variation
-    float velocityFactor = 1.0 + (cappedVelocityMagnitude * velocityInfluence * (1.0 + uniqueOffset * 0.1));
-    float displacement = attractionStrength * mouseRadius * attractionFactor * velocityFactor;
-    displacement = min(displacement, maxDisplacement);
-
-    // Apply attraction with cohesion and unique behavior
+    // Apply attraction with default movement
     vec2 attractionOffset = direction * displacement;
-    vec2 velocityOffset = cappedVelocity * velocityInfluence * attractionFactor * (1.0 + uniqueOffset * 0.15);
-    attractionOffset = mix(attractionOffset, attractionOffset + velocityOffset, 0.5);
-    attractionOffset += oscillation * attractionFactor * 2.0;
-
-    // Calculate final position with enhanced stability and unique movement
-    targetPos = screenPos - attractionOffset;
-
-    // Add position constraint to prevent breaking apart
-    vec2 toTarget = targetPos - screenPos;
-    float distanceToTarget = length(toTarget);
-    if (distanceToTarget > maxDisplacement) {
-        targetPos = screenPos + (normalize(toTarget) * maxDisplacement);
-    }
-
-    float springSmoothing = mix(0.3, 0.6, attractionFactor) * (1.0 + uniqueOffset * 0.1);
-    currentPos = lerp(screenPos, targetPos, springSmoothing);
+    vec2 finalPos = screenPos - attractionOffset;
 
     // Convert back to UV space
-    vec2 attractedUV = currentPos / resolution;
+    vec2 attractedUV = finalPos / resolution;
 
     // Make pixels perfectly square with relative gaps
     vec2 pixelOffset = fract(vUv * resolution / totalSize);
@@ -172,7 +103,9 @@ const fragmentShader = `
 
     // Sample texture at the attracted position
     vec4 texel = texture2D(tDiffuse, attractedUV);
-    if(texel.a < 0.1) {
+
+    // Only discard if completely transparent
+    if(texel.a <= 0.0) {
       discard;
       return;
     }
@@ -207,10 +140,9 @@ export function FinalModel({
   const targetMouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastFrameTime = useRef(Date.now());
 
-  // Improved spring configuration for heavier animation
-  const SPRING_STIFFNESS = 100;
+  const SPRING_STIFFNESS = 56;
   const SPRING_DAMPING = 12;
-  const MASS = 4.0;
+  const MASS = 2.0;
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
@@ -219,10 +151,8 @@ export function FinalModel({
   const controlsRef = useRef<OrbitControls | null>(null);
   const postMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
 
-  // Make resolution square for circular proportions
   const resolution = 512;
 
-  // Convert colors to THREE.Vector3 for shader
   const colorVectors = useMemo(() => {
     return colors.map(color => {
       const c = new THREE.Color(color);
@@ -230,10 +160,8 @@ export function FinalModel({
     });
   }, [colors]);
 
-  // Setup Three.js scene
   useEffect(() => {
     if (!canvasRef.current) return;
-    console.log('Setting up Three.js scene');
 
     const scene = new THREE.Scene();
     scene.background = null;
@@ -248,7 +176,7 @@ export function FinalModel({
       -1000,
       1000
     );
-    camera.position.set(0, 0, 5);
+    camera.position.set(0, 0, 0);
     camera.lookAt(0, 0, 0);
 
     const createDirectionalLight = (x: number, y: number, z: number, intensity: number) => {
@@ -285,16 +213,26 @@ export function FinalModel({
     rendererRef.current = renderer;
     renderTargetRef.current = new THREE.WebGLRenderTarget(resolution, resolution);
 
-    // Create post-processing scene
     const postScene = new THREE.Scene();
     const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    renderer.setRenderTarget(renderTargetRef.current);
+    renderer.clear();
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    renderer.clear();
+    renderer.render(postScene, postCamera);
+
+    const centerX = resolution / 2;
+    const centerY = resolution / 2;
+
     const postMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tDiffuse: { value: renderTargetRef.current.texture },
         resolution: { value: new THREE.Vector2(resolution, resolution) },
         colors: { value: colorVectors },
-        mousePos: { value: new THREE.Vector2(0, 0) },
-        lastMousePos: { value: new THREE.Vector2(0, 0) },
+        mousePos: { value: new THREE.Vector2(centerX, centerY) },
+        lastMousePos: { value: new THREE.Vector2(centerX, centerY) },
         mouseRadius: { value: MOUSE_RADIUS },
         time: { value: 0.0 }
       },
@@ -307,34 +245,36 @@ export function FinalModel({
     const postQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMaterial);
     postScene.add(postQuad);
 
-    // Load the model
-    const loader = new GLTFLoader();
-    loader.load(modelPath, (gltf) => {
-      const model = gltf.scene;
+    mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
+    targetMouseRef.current = { x: centerX, y: centerY };
 
-      const scale = isMobile ? 0.8 : 1.0;
-      model.scale.set(scale, scale, scale);
-
-      scene.add(model);
-      modelRef.current = model;
-    });
-
-    // Define render function with lerping
-    const render = () => {
-      if (!renderer || !scene || !camera || !renderTargetRef.current) return;
+    let animationFrameId: number;
+    const animate = () => {
+      if (!renderer || !scene || !camera || !renderTargetRef.current || !postScene || !postCamera) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
 
       const currentTime = Date.now();
       const deltaTime = Math.min((currentTime - lastFrameTime.current) / 1000, 0.016);
       lastFrameTime.current = currentTime;
 
-      // On mobile, use fixed center position
-      if (isMobile) {
-        const centerX = -200;
-        const centerY = -200;
-        mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
-        targetMouseRef.current = { x: centerX, y: centerY };
-      } else {
-        // Spring physics simulation for desktop
+      const centerX = resolution / 2;
+      const centerY = resolution / 2;
+
+      if (modelRef.current) {
+        rotationAngleRef.current += 0.0025;
+        modelRef.current.rotation.y = rotationAngleRef.current;
+      }
+
+      if (!isMobile) {
+        if (!mouseRef.current) {
+          mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
+        }
+        if (!targetMouseRef.current) {
+          targetMouseRef.current = { x: centerX, y: centerY };
+        }
+
         const springForceX = SPRING_STIFFNESS * (targetMouseRef.current.x - mouseRef.current.x);
         const springForceY = SPRING_STIFFNESS * (targetMouseRef.current.y - mouseRef.current.y);
 
@@ -349,43 +289,58 @@ export function FinalModel({
 
         mouseRef.current.x += mouseRef.current.vx * deltaTime;
         mouseRef.current.y += mouseRef.current.vy * deltaTime;
+      } else {
+        mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
+        targetMouseRef.current = { x: centerX, y: centerY };
       }
 
-      // Update model rotation
-      if (modelRef.current) {
-        rotationAngleRef.current += 0.0025;
-        modelRef.current.rotation.y = rotationAngleRef.current;
-      }
-
-      // Update shader uniforms
       if (postMaterialRef.current) {
-        const { x, y } = mouseRef.current;
+        const mouseX = mouseRef.current?.x ?? centerX;
+        const mouseY = mouseRef.current?.y ?? centerY;
+
         postMaterialRef.current.uniforms.lastMousePos.value.copy(postMaterialRef.current.uniforms.mousePos.value);
-        postMaterialRef.current.uniforms.mousePos.value.set(x, y);
+        postMaterialRef.current.uniforms.mousePos.value.set(mouseX, mouseY);
         postMaterialRef.current.uniforms.mouseRadius.value = MOUSE_RADIUS;
         postMaterialRef.current.uniforms.time.value += deltaTime;
       }
 
-      // Render original scene to texture
       renderer.setRenderTarget(renderTargetRef.current);
       renderer.clear();
       renderer.render(scene, camera);
 
-      // Apply post-processing
-      if (postScene && postCamera) {
-        renderer.setRenderTarget(null);
-        renderer.render(postScene, postCamera);
-      }
-    };
+      renderer.setRenderTarget(null);
+      renderer.clear();
+      renderer.render(postScene, postCamera);
 
-    // Start rendering
-    let animationFrameId: number;
-    const animate = () => {
-      render();
       animationFrameId = requestAnimationFrame(animate);
     };
+
     animate();
-    console.log('Started render loop');
+
+    const loader = new GLTFLoader();
+    loader.load(modelPath,
+      (gltf) => {
+        const model = gltf.scene;
+        const scale = isMobile ? 0.8 : 1.0;
+        model.scale.set(scale, scale, scale);
+        model.position.set(0, 0, 0);
+        model.rotation.set(0, 0, 0);
+        scene.add(model);
+        modelRef.current = model;
+
+        if (renderer && scene && camera && renderTargetRef.current && postScene && postCamera) {
+          for (let i = 0; i < 3; i++) {
+            renderer.setRenderTarget(renderTargetRef.current);
+            renderer.clear();
+            renderer.render(scene, camera);
+
+            renderer.setRenderTarget(null);
+            renderer.clear();
+            renderer.render(postScene, postCamera);
+          }
+        }
+      },
+    );
 
     const handleResize = () => {
       if (!camera || !renderer) return;
@@ -400,7 +355,6 @@ export function FinalModel({
 
       renderer.setSize(size, size);
 
-      // Center the canvas
       if (canvasRef.current) {
         canvasRef.current.style.position = 'absolute';
         canvasRef.current.style.left = `${(window.innerWidth - size) / 2}px`;
@@ -409,7 +363,7 @@ export function FinalModel({
     };
 
     const handleMouseMove = (event: MouseEvent) => {
-      if (isMobile) return; // Skip all mouse handling on mobile
+      if (isMobile) return;
 
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -420,24 +374,20 @@ export function FinalModel({
       targetMouseRef.current = { x, y };
     };
 
-    // Only add mouse events if not mobile
+    const handleMouseLeave = () => {
+      const centerX = 0;
+      const centerY = 0;
+      targetMouseRef.current = { x: centerX, y: centerY };
+    };
+
     if (!isMobile) {
       window.addEventListener('mousemove', handleMouseMove);
-    }
-
-    // Initialize mouse and target positions at center
-    const centerX = resolution / 2;
-    const centerY = resolution / 2;
-    mouseRef.current = { x: centerX, y: centerY, vx: 0, vy: 0 };
-    targetMouseRef.current = { x: centerX, y: centerY };
-    if (postMaterialRef.current) {
-      postMaterialRef.current.uniforms.mousePos.value.set(centerX, centerY);
-      postMaterialRef.current.uniforms.lastMousePos.value.set(centerX, centerY);
-      postMaterialRef.current.uniforms.mouseRadius.value = MOUSE_RADIUS;
+      window.addEventListener('mouseleave', handleMouseLeave);
+      document.addEventListener('visibilitychange', handleMouseLeave);
     }
 
     window.addEventListener('resize', handleResize);
-    handleResize(); // Call immediately to set initial size
+    handleResize();
 
     return () => {
       if (animationFrameId) {
@@ -445,6 +395,8 @@ export function FinalModel({
       }
       if (!isMobile) {
         window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseleave', handleMouseLeave);
+        document.removeEventListener('visibilitychange', handleMouseLeave);
       }
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
@@ -453,7 +405,6 @@ export function FinalModel({
       postQuad.geometry.dispose();
       renderTargetRef.current?.dispose();
 
-      // Clear refs
       sceneRef.current = null;
       cameraRef.current = null;
       rendererRef.current = null;
