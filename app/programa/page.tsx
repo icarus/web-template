@@ -1,7 +1,6 @@
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 import { ArrowUpRight } from "lucide-react";
 
 export default function Programa() {
