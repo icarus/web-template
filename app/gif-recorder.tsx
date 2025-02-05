@@ -64,7 +64,6 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
         console.log('Finished capturing frames. Rendering GIF.');
         // Log total frames added (if available via the internal frames array)
         // (gif as any).frames may contain the frames, so we log that
-        console.log('Total frames added:', (gif as any).frames ? (gif as any).frames.length : 'unknown');
 
         gif.on('progress', (p: number) => {
           console.log('GIF rendering progress:', p);
