@@ -332,7 +332,7 @@ export function FinalModel({
     loader.load(modelPath,
       (gltf) => {
         const model = gltf.scene;
-        const scale = isMobile ? 0.8 : 1.0;
+        const scale = isMobile ? 1.3 : 1.0;
         model.scale.set(scale, scale, scale);
         model.position.set(0, 0, 0);
         model.rotation.set(0, 0, 0);

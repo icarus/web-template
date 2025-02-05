@@ -5,11 +5,11 @@ import Image from "next/image";
 export default function Programa() {
   return (
     <BlurFade delay={0.15} className="mt-40 text-white mx-auto max-w-screen-xl">
-      <div className="flex flex-col gap-24 pb-32 max-w-screen-lg mx-auto w-full px-6">
-        <BlurFade className="text-5xl leading-normal text-balance">
+      <div className="flex flex-col gap-16 md:gap-24 pb-32 max-w-screen-lg mx-auto w-full px-6">
+        <BlurFade className="text-3xl md:text-5xl leading-normal text-balance">
           Invertimos $200,000 USD por el 5,5% de tu startup.
         </BlurFade>
-        <BlurFade delay={0.15} className="grid grid-cols-2 gap-16">
+        <BlurFade delay={0.15} className="grid grid-cols-1 md:grid-cols-2 gap-16">
           <div className="flex flex-col gap-2">
             Las postulaciones ya abrieron
             <Button variant="white" className="mt-4">
@@ -19,7 +19,7 @@ export default function Programa() {
               Nuestro portafolio
             </Button>
           </div>
-          <div className="w-[512px] grid grid-cols-2 gap-6">
+          <div className="md:w-[512px] grid grid-cols-1 md:grid-cols-2 gap-6">
             {program.map((item, index) => (
               <div key={index} className="flex items-start gap-2.5 text-base">
                 <div className="size-1 my-2.5 aspect-square bg-yellow-300" />
@@ -30,9 +30,9 @@ export default function Programa() {
         </BlurFade>
       </div>
 
-      <BlurFade delay={0.3} className="grid grid-cols-4 py-24 max-w-screen-lg mx-auto w-full">
+      <BlurFade delay={0.3} className="grid grid-cols-2 md:grid-cols-4 py-24 max-w-screen-lg mx-auto w-full">
         {requirements.map((item, index) => (
-          <div key={index} className="flex flex-col gap-4 p-6">
+          <div key={index} className="flex flex-col gap-4 p-4 md:p-6">
             {item.icon}
             <p className="font-medium">{item.title}</p>
             <p className="-mt-4 text-neutral-500">{item.description}</p>
@@ -40,18 +40,18 @@ export default function Programa() {
         ))}
       </BlurFade>
 
-      <BlurFade delay={0.15} inView className="grid grid-cols-4 py-24 max-w-screen-lg mx-auto w-full">
+      <BlurFade delay={0.15} inView className="grid grid-cols-2 md:grid-cols-4 py-24 max-w-screen-lg mx-auto w-full">
         {mentors.map((mentor, index) => (
-          <div key={index} className="flex flex-col gap-4 p-6">
+          <div key={index} className="flex flex-col gap-2 md:gap-4 p-6">
             <Image
               src={mentor.image}
               alt={mentor.name}
               width={200}
               height={200}
-              className="size-full rounded-md"
+              className="aspect-square w-full rounded-md object-cover"
             />
-            <p className="font-medium text-xl">{mentor.name}</p>
-            <p className="-mt-2 flex gap-2.5 items-center">
+            <p className="font-medium text-lg md:text-xl">{mentor.name}</p>
+            <p className="md:-mt-2 flex gap-2.5 items-center">
               <Image src={mentor.company.logo} alt={mentor.company.name} width={24} height={24} className="rounded-md size-6" />
               {mentor.company.name}
             </p>
