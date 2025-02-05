@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, RefObject, useMemo } from "react";
+import { useEffect, useRef, RefObject, useMemo, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -13,9 +13,13 @@ interface ModelProps {
 
 const vertexShader = `
   varying vec2 vUv;
+  varying float vDepth;
+
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+    vDepth = -modelViewPosition.z;
+    gl_Position = projectionMatrix * modelViewPosition;
   }
 `;
 
@@ -29,6 +33,7 @@ const fragmentShader = `
   uniform float time;
 
   varying vec2 vUv;
+  varying float vDepth;
 
   vec2 lerp(vec2 start, vec2 end, float t) {
     return start + (end - start) * clamp(t, 0.0, 1.0);
@@ -131,6 +136,7 @@ export function FinalModel({
 }: ModelProps) {
   const MOUSE_RADIUS = 50.0;
   const isMobile = useIsMobile();
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -197,10 +203,12 @@ export function FinalModel({
       canvas: canvasRef.current,
       alpha: true,
       antialias: true,
+      premultipliedAlpha: false,
     });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
+    renderer.setClearAlpha(0);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -223,8 +231,8 @@ export function FinalModel({
     renderer.clear();
     renderer.render(postScene, postCamera);
 
-    const centerX = resolution / 2;
-    const centerY = resolution / 2;
+    const centerX = -200;
+    const centerY = 0;
 
     const postMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -339,6 +347,7 @@ export function FinalModel({
             renderer.render(postScene, postCamera);
           }
         }
+        setIsLoaded(true);
       },
     );
 
@@ -346,7 +355,7 @@ export function FinalModel({
       if (!camera || !renderer) return;
 
       const size = Math.min(window.innerWidth, window.innerHeight);
-      const aspect = 1.0; // Force 1:1 aspect ratio
+      const aspect = 1.0;
       camera.left = (frustumSize * aspect) / -2;
       camera.right = (frustumSize * aspect) / 2;
       camera.top = frustumSize / 2;
@@ -418,26 +427,18 @@ export function FinalModel({
   return (
     <div
       ref={containerRef}
-      className="relative w-screen h-screen mx-auto"
+      className="w-screen h-screen mx-auto fixed touch-none bg-black"
       style={{
-        touchAction: 'none',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 0,
-        pointerEvents: isMobile ? 'none' : 'all'
+        pointerEvents: isMobile ? 'none' : 'all',
+        visibility: isLoaded ? 'visible' : 'hidden',
       }}
     >
       <canvas
         ref={canvasRef}
-        className="absolute w-full h-full"
+        className="absolute w-full h-full bg-black"
         style={{
           pointerEvents: isMobile ? 'none' : 'auto',
           touchAction: isMobile ? 'none' : 'auto',
-          opacity: 1,
-          zIndex: 1
         }}
       />
     </div>

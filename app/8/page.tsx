@@ -198,114 +198,112 @@ export default function Model() {
     <>
       <Cursor />
       <div className="relative w-screen overflow-hidden h-svh">
-        <>
-          <Link href="/">
-            <Image
-              src="/logo.svg"
-              alt="Logo"
-              width={164}
-              height={48}
-              className="z-50 absolute top-4 left-4 cursor-none"
-            />
-          </Link>
+        <Link href="/">
+          <Image
+            src="/logo.svg"
+            alt="Logo"
+            width={164}
+            height={48}
+            className="z-50 absolute top-4 left-4 cursor-none"
+          />
+        </Link>
 
-          <div className="w-full right-0 justify-end z-50 flex flex-wrap p-2 md:p-4 absolute bottom-0 gap-1">
-            {links.filter(link => !link.floating).map((link, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                className="group cursor-pointer font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
-                asChild
-              >
-                <Link href={link.href}>
-                  {link.name === "asadasdas" && (
-                    <div className="relative mr-1 size-1 flex items-center justify-center">
-                      <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
-                      <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
-                    </div>
-                  )}
-                  {link.name}
-                  <ArrowUpRight className="opacity-50" />
-                </Link>
-              </Button>
-            ))}
+        <div className="w-full right-0 justify-end z-50 flex flex-wrap p-2 md:p-4 absolute bottom-0 gap-1">
+          {links.filter(link => !link.floating).map((link, index) => (
             <Button
+              key={index}
               variant="outline"
               size="sm"
-              className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+              className="group cursor-pointer font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+              asChild
             >
-              <div className="relative mr-1 size-1 flex items-center justify-center">
-                <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
-              </div>
-              Postula
+              <Link href={link.href}>
+                {link.name === "asadasdas" && (
+                  <div className="relative mr-1 size-1 flex items-center justify-center">
+                    <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
+                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
+                  </div>
+                )}
+                {link.name}
+                <ArrowUpRight className="opacity-50" />
+              </Link>
             </Button>
-            <div className="text-neutral-400 text-sm flex uppercase font-mono h-7 items-center px-2 rounded-md gap-px bg-neutral-800/75">
-              <span>34d</span>
-              <span>:</span>
-              <span>12h</span>
-              <span>:</span>
-              <span>59m</span>
-              <span>:</span>
-              <span>59s</span>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors"
+          >
+            <div className="relative mr-1 size-1 flex items-center justify-center">
+              <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
+              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
             </div>
+            Postula
+          </Button>
+          <div className="text-neutral-400 text-sm flex uppercase font-mono h-7 items-center px-2 rounded-md gap-px bg-neutral-800/75">
+            <span>34d</span>
+            <span>:</span>
+            <span>12h</span>
+            <span>:</span>
+            <span>59m</span>
+            <span>:</span>
+            <span>59s</span>
           </div>
+        </div>
 
-          <Floating sensitivity={isMobile ? 0 : -1} className="z-[40] overflow-hidden">
-            {links.filter(link => link.floating).map((link, index) => (
-              <FloatingLink
+        <Floating sensitivity={isMobile ? 0 : -1} className="z-[40] overflow-hidden">
+          {links.filter(link => link.floating).map((link, index) => (
+            <FloatingLink
+              key={index}
+              index={index}
+              name={link.name}
+              href={link.href}
+              description={link.description}
+              depth={link.depth}
+              position={link.position}
+              blogPost={link.blogPost}
+            />
+          ))}
+        </Floating>
+
+        <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-[45]">
+          <g>
+            {links.filter(link => link.floating).map((_, index) => (
+              <motion.line
                 key={index}
-                index={index}
-                name={link.name}
-                href={link.href}
-                description={link.description}
-                depth={link.depth}
-                position={link.position}
-                blogPost={link.blogPost}
+                ref={el => { lineRefs.current[index] = el }}
+                stroke="white"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+                initial={{ pathLength: 0, opacity: 1 }}
+                animate={{ pathLength: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
+                transition={{
+                  delay: (index * 0.1),
+                  duration: 0.5,
+                  ease: "easeInOut"
+                }}
               />
             ))}
-          </Floating>
+          </g>
+        </svg>
 
-          <svg className="fixed inset-0 w-screen h-screen pointer-events-none z-[45]">
-            <g>
-              {links.filter(link => link.floating).map((_, index) => (
-                <motion.line
-                  key={index}
-                  ref={el => { lineRefs.current[index] = el }}
-                  stroke="white"
-                  strokeWidth="1"
-                  vectorEffect="non-scaling-stroke"
-                  initial={{ pathLength: 0, opacity: 1 }}
-                  animate={{ pathLength: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
-                  transition={{
-                    delay: (index * 0.1),
-                    duration: 0.5,
-                    ease: "easeInOut"
-                  }}
-                />
-              ))}
-            </g>
-          </svg>
+        <div className="z-[60] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <FloatingElement depth={0.3}>
+            <motion.div
+              ref={centerRef}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
+              transition={{ duration: 0.5 }}
+              className={cn(
+                "scale-100 size-4 bg-white ring-white ring-2 border-[5px] border-black shadow-2xl aspect-square"
+              )}
+            />
+          </FloatingElement>
+        </div>
 
-          <div className="z-[60] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <FloatingElement depth={0.3}>
-              <motion.div
-                ref={centerRef}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
-                transition={{ duration: 0.5 }}
-                className={cn(
-                  "scale-100 size-4 bg-white ring-white ring-2 border-[5px] border-black shadow-2xl aspect-square"
-                )}
-              />
-            </FloatingElement>
-          </div>
-
-          <FinalModel
-            modelPath="/models/logo2.gltf"
-          />
-        </>
+        <FinalModel
+          modelPath="/models/logo2.gltf"
+        />
       </div>
     </>
   );
