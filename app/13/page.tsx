@@ -1,40 +1,39 @@
 "use client";
 
-import Image from "next/image";
-import { useState, useEffect } from "react";
-import { Content } from "@/components/shared/content";
+import Spline from "@splinetool/react-spline";
+import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import FrameOverlay from "@/components/shared/frame-overlay";
-
-const imageSources = ["/gif2.gif"];
-// const imageSources = ["/Banana.gif", "/CloseUp.gif", "/ZoomGif.gif"];
+import { Content } from "@/components/shared/content";
 
 export default function Home() {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % imageSources.length);
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, []);
+  const [isGrayscale, setIsGrayscale] = useState(false);
 
   return (
-    <main className="font-sans w-screen h-svh overflow-hidden">
-      <Content />
-
+    <>
       <FrameOverlay />
 
-      <div className="absolute -z-10 w-screen h-screen">
-        <Image
-          src={imageSources[currentImageIndex]}
-          alt={`Image ${currentImageIndex + 1}`}
-          width={1920}
-          height={1080}
-          quality={100}
-          className="w-full h-full object-cover pointer-events-auto select-none saturate-200 brightness-100"
+      <Content />
+
+      <main className="relative">
+        <Switch
+          checked={isGrayscale}
+          onCheckedChange={setIsGrayscale}
+          className="fixed top-4 left-4 z-20 !bg-transparent"
         />
-      </div>
-    </main>
+        <div
+          className={cn(
+            "z-10 absolute w-screen h-svh inset-0 bg-dither-2",
+            isGrayscale && "grayscale invert",
+          )}
+        />
+        <div className="z-10 absolute w-screen h-svh mix-blend-overlay bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-900 inset-0" />
+        <Spline
+          scene="https://prod.spline.design/y-GdRG8PL3QWLqg7/scene.splinecode"
+          className={cn("w-full h-svh fixed opacity-50", isGrayscale && "grayscale")}
+        />
+      </main>
+    </>
   );
 }

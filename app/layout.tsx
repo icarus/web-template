@@ -6,7 +6,8 @@ import "./globals.css";
 import { cn } from "@/lib/utils"
 import Header from "@/components/layout/header";
 import { usePathname } from "next/navigation";
-import { FinalModel } from "./8/final-model";
+import { FinalModel } from "./final-model";
+import { Cursor } from "@/components/ui/cursor";
 
 const vcr = localFont({
   src: "../fonts/VCR_OSD_MONO.ttf",
@@ -41,15 +42,16 @@ export default function RootLayout({
         )}
       >
         <main>
-          {pathname === "/" || pathname === "/3" && <Header />}
+          <Cursor />
+          {pathname === "/" || pathname === "/3" || pathname === "/programa" && <Header />}
           {children}
-          {pathname === "/programa" && (
-            <div className="fixed top-0 -z-20 w-screen h-screen pointer-events-none">
-              <FinalModel
-                modelPath="/models/logo2.gltf"
-              />
-            </div>
+          <div className={cn(
+            "-z-10 fixed inset-0 transition-opacity duration-500",
+            pathname === '/' ? 'opacity-100' : 'opacity-50'
           )}
+          >
+            <FinalModel modelPath="/models/logo2.gltf" />
+          </div>
         </main>
       </body>
     </html>

@@ -150,7 +150,14 @@ export default function Header() {
               </NavigationMenuItem> */}
             </NavigationMenuList>
           </NavigationMenu>
-          <Button variant="white" className="hidden md:flex">
+          <Button
+            variant="outline"
+            className="hidden h-9 px-4 md:flex group font-mono uppercase border-neutral-800 gap-1 hover:bg-white/10 transition-colors"
+          >
+            <div className="relative mr-1 size-1 flex items-center justify-center">
+              <span className="size-1.5 animate-ping bg-yellow-300 aspect-square" />
+              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-1 bg-yellow-300 aspect-square" />
+            </div>
             Postula
           </Button>
           <Menu />

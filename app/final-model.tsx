@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { usePathname } from "next/navigation";
 
 interface ModelProps {
   modelPath: string;
@@ -136,6 +137,8 @@ export function FinalModel({
 }: ModelProps) {
   const MOUSE_RADIUS = 50.0;
   const isMobile = useIsMobile();
+  const pathname = usePathname();
+  const disableMouseInteractions = pathname !== "/";
   const [isLoaded, setIsLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
@@ -373,13 +376,10 @@ export function FinalModel({
 
     const handleMouseMove = (event: MouseEvent) => {
       if (isMobile) return;
-
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
-
       const x = (event.clientX - rect.left) / rect.width * resolution;
       const y = (1.0 - (event.clientY - rect.top) / rect.height) * resolution;
-
       targetMouseRef.current = { x, y };
     };
 
@@ -389,7 +389,7 @@ export function FinalModel({
       targetMouseRef.current = { x: centerX, y: centerY };
     };
 
-    if (!isMobile) {
+    if (!isMobile && !disableMouseInteractions) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseleave', handleMouseLeave);
       document.addEventListener('visibilitychange', handleMouseLeave);
@@ -402,7 +402,7 @@ export function FinalModel({
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
-      if (!isMobile) {
+      if (!isMobile && !disableMouseInteractions) {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseleave', handleMouseLeave);
         document.removeEventListener('visibilitychange', handleMouseLeave);
@@ -422,14 +422,14 @@ export function FinalModel({
       controlsRef.current = null;
       postMaterialRef.current = null;
     };
-  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile]);
+  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile, disableMouseInteractions]);
 
   return (
     <div
       ref={containerRef}
       className="w-screen h-screen mx-auto fixed touch-none bg-black"
       style={{
-        pointerEvents: isMobile ? 'none' : 'all',
+        pointerEvents: isMobile || disableMouseInteractions ? 'none' : 'all',
         visibility: isLoaded ? 'visible' : 'hidden',
       }}
     >
@@ -437,8 +437,8 @@ export function FinalModel({
         ref={canvasRef}
         className="absolute w-full h-full bg-black"
         style={{
-          pointerEvents: isMobile ? 'none' : 'auto',
-          touchAction: isMobile ? 'none' : 'auto',
+          pointerEvents: isMobile || disableMouseInteractions ? 'none' : 'auto',
+          touchAction: isMobile || disableMouseInteractions ? 'none' : 'auto',
         }}
       />
     </div>
