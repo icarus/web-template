@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import GIF from 'gif.js';
 
 interface GifRecorderProps {
   modelPath: string;
@@ -18,6 +19,7 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [gifUrl, setGifUrl] = useState<string>("");
   const [recording, setRecording] = useState<boolean>(false);
+  const [forcedRotationAngle, setForcedRotationAngle] = useState<number | undefined>(undefined);
 
   const [rotationSpeed, setRotationSpeed] = useState(0.0025);
   const [pixelSize, setPixelSize] = useState(1.5);
@@ -29,38 +31,65 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
   const grayscaleColors = ["#121212", "#777777", "#BBBBBB"];
   const computedColors = colors || (colorsPreset === "grayscale" ? grayscaleColors : defaultColors);
 
-  function encodeGif(frames: string[]): Blob {
-    void frames.length;
-    const gifData = "R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
-    const binary = atob(gifData);
-    const array = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      array[i] = binary.charCodeAt(i);
-    }
-    return new Blob([array], { type: "image/gif" });
-  }
-
   const recordGif = () => {
     if (!canvasRef.current) return;
     setRecording(true);
-    const frames: string[] = [];
     const startTime = Date.now();
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const width = Math.floor(rect.width);
+    const height = Math.floor(rect.height);
+
+    const gif = new GIF({
+      workers: 2,
+      quality: 30,
+      workerScript: '/gif.worker.js',
+      width,
+      height
+    });
 
     const captureFrame = () => {
       if (!canvasRef.current) return;
-      frames.push(canvasRef.current.toDataURL("image/png"));
       const elapsed = Date.now() - startTime;
+      console.log('Capture frame at elapsed (ms):', elapsed);
+      const progress = Math.min(elapsed / durationMs, 1);
+      setForcedRotationAngle(progress * 2 * Math.PI);
+
+      // Add current canvas frame with a 100ms delay
+      gif.addFrame(canvasRef.current, { copy: true, delay: 100 });
+
       if (elapsed < durationMs) {
-        requestAnimationFrame(captureFrame);
+        setTimeout(captureFrame, 100);
       } else {
-        const blob = encodeGif(frames);
-        const url = URL.createObjectURL(blob);
-        setGifUrl(url);
-        setRecording(false);
+        console.log('Finished capturing frames. Rendering GIF.');
+        // Log total frames added (if available via the internal frames array)
+        // (gif as any).frames may contain the frames, so we log that
+        console.log('Total frames added:', (gif as any).frames ? (gif as any).frames.length : 'unknown');
+
+        gif.on('progress', (p: number) => {
+          console.log('GIF rendering progress:', p);
+        });
+        gif.on('finished', (blob: Blob) => {
+          const url = URL.createObjectURL(blob);
+          console.log('GIF rendering finished. Blob URL:', url);
+          setGifUrl(url);
+          setForcedRotationAngle(undefined);
+          setRecording(false);
+        });
+        gif.on('error', (err: Error) => {
+          console.error('GIF rendering error:', err);
+        });
+        console.log('Calling gif.render() now.');
+        gif.render();
+        // If rendering takes too long, log an error after 30 seconds
+        setTimeout(() => {
+          console.error('GIF rendering is taking too long.');
+        }, 30000);
+        console.warn('Note: gif.js may not work properly in Next.js development mode with Fast Refresh. Please try a production build.');
       }
     };
 
-    requestAnimationFrame(captureFrame);
+    captureFrame();
   };
 
   const handleReset = () => {
@@ -72,7 +101,7 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-screen h-screen overflow-hidden">
       <Button
         variant="link"
         className="absolute top-4 left-4 decoration-neutral-600 [&_svg]:text-neutral-500 hover:decoration-white underline uppercase font-mono px-0"
@@ -151,6 +180,7 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
         pixelSize={pixelSize}
         gapRatio={gapRatio}
         customResolution={customResolution}
+        forcedRotationAngle={forcedRotationAngle}
       />
     </div>
   );

@@ -12,6 +12,7 @@ interface ModelProps {
   colors?: string[];
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
   rotationSpeed?: number;
+  forcedRotationAngle?: number;
   pixelSize?: number;
   gapRatio?: number;
   customResolution?: number;
@@ -141,6 +142,7 @@ export function FinalModel({
   colors = ["#9C6323", "#F9A341", "#FFEC40"],
   canvasRef: externalCanvasRef,
   rotationSpeed,
+  forcedRotationAngle,
   pixelSize,
   gapRatio,
   customResolution
@@ -293,8 +295,13 @@ export function FinalModel({
       const centerY = resolution / 2;
 
       if (modelRef.current) {
-        rotationAngleRef.current += effectiveRotationSpeed;
-        modelRef.current.rotation.y = rotationAngleRef.current;
+        if (forcedRotationAngle !== undefined) {
+          modelRef.current.rotation.y = forcedRotationAngle;
+          rotationAngleRef.current = forcedRotationAngle;
+        } else {
+          rotationAngleRef.current += effectiveRotationSpeed;
+          modelRef.current.rotation.y = rotationAngleRef.current;
+        }
       }
 
       if (!isMobile) {
@@ -441,7 +448,7 @@ export function FinalModel({
       controlsRef.current = null;
       postMaterialRef.current = null;
     };
-  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile, disableMouseInteractions, effectivePixelSize, effectiveGapRatio, effectiveRotationSpeed]);
+  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile, disableMouseInteractions, effectivePixelSize, effectiveGapRatio, effectiveRotationSpeed, forcedRotationAngle]);
 
   return (
     <div

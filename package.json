@@ -33,6 +33,7 @@
     "dither-dither": "^1.1.1",
     "drei": "^2.2.21",
     "framer-motion": "^11.18.2",
+    "gif.js": "^0.2.0",
     "gif.js.optimized": "^1.0.1",
     "gsap": "^3.12.7",
     "i18next": "^24.2.0",
