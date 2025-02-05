@@ -5,7 +5,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils"
 import Header from "@/components/layout/header";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { FinalModel } from "./8/final-model";
 
