@@ -451,7 +451,7 @@ export function FinalModel({
       controlsRef.current = null;
       postMaterialRef.current = null;
     };
-  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile, disableMouseInteractions, effectivePixelSize, effectiveGapRatio, effectiveRotationSpeed, forcedRotationAngle]);
+  }, [modelPath, resolution, colorVectors, MOUSE_RADIUS, isMobile, disableMouseInteractions, effectivePixelSize, effectiveGapRatio, effectiveRotationSpeed, forcedRotationAngle, canvasRef]);
 
   return (
     <div

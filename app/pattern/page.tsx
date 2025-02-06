@@ -19,6 +19,7 @@ export default function PixelPage({ hiddenSide = 'right' }: PixelPageProps) {
     return containerWidth * (numRows / numCols);
   }, [containerWidth, numRows, numCols]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const colorProbabilities = {
     "#9C6323": 0.1, // 20% chance of brown
     "#F9A341": 0.3, // 20% chance of orange
@@ -63,7 +64,7 @@ export default function PixelPage({ hiddenSide = 'right' }: PixelPageProps) {
       if (rand < colorProbabilities["#9C6323"] + colorProbabilities["#F9A341"]) return "#F9A341";
       return "#FFEC40";
     }),
-    [numRows, numCols, hiddenSide]
+    [numRows, numCols, hiddenSide, colorProbabilities]
   );
 
   const svgWidth = numCols * (pixelSize + gapSize);
