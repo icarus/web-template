@@ -100,14 +100,15 @@ const fragmentShader = `
     // Convert back to UV space
     vec2 attractedUV = finalPos / resolution;
 
-    // Ensure square pixels by using the same scale for both dimensions
+    // Calculate pixel boundaries with precise thresholds
     vec2 pixelOffset = fract(vUv * resolution / totalSize);
-    pixelOffset = pixelOffset - 0.5;
     float pixelRatio = pixelSize / totalSize;
-    float halfPixel = pixelRatio / 2.0;
 
-    // Use max to ensure the pixel is perfectly square
-    if (max(abs(pixelOffset.x), abs(pixelOffset.y)) > halfPixel) {
+    // Sharp square check - no interpolation
+    if (pixelOffset.x < (0.5 - pixelRatio/2.0) ||
+        pixelOffset.x > (0.5 + pixelRatio/2.0) ||
+        pixelOffset.y < (0.5 - pixelRatio/2.0) ||
+        pixelOffset.y > (0.5 + pixelRatio/2.0)) {
       discard;
       return;
     }
