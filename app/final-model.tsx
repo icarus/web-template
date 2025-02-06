@@ -5,7 +5,6 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { usePathname } from "next/navigation";
 
 interface ModelProps {
   modelPath: string;
@@ -101,14 +100,14 @@ const fragmentShader = `
     // Convert back to UV space
     vec2 attractedUV = finalPos / resolution;
 
-    // Make pixels perfectly square with relative gaps
+    // Ensure square pixels by using the same scale for both dimensions
     vec2 pixelOffset = fract(vUv * resolution / totalSize);
     pixelOffset = pixelOffset - 0.5;
     float pixelRatio = pixelSize / totalSize;
     float halfPixel = pixelRatio / 2.0;
 
-    // Strict square check
-    if (abs(pixelOffset.x) > halfPixel || abs(pixelOffset.y) > halfPixel) {
+    // Use max to ensure the pixel is perfectly square
+    if (max(abs(pixelOffset.x), abs(pixelOffset.y)) > halfPixel) {
       discard;
       return;
     }
@@ -122,7 +121,7 @@ const fragmentShader = `
       return;
     }
 
-    // Calculate brightness and pick color from palette
+    // Calculate brightness and pick color from palette without any additional processing
     float brightness = (texel.r + texel.g + texel.b) / 3.0;
     vec3 color;
     if(brightness < 0.22) {
@@ -133,13 +132,14 @@ const fragmentShader = `
       color = colors[2];
     }
 
+    // Output the color directly without any additional processing
     gl_FragColor = vec4(color, 1.0);
   }
 `;
 
 export function FinalModel({
   modelPath,
-  colors = ["#9C6323", "#F9A341", "#FFEC40"],
+  colors = ["#A16207", "#F9BC12", "#FFEC40"],
   canvasRef: externalCanvasRef,
   rotationSpeed,
   forcedRotationAngle,
@@ -154,8 +154,9 @@ export function FinalModel({
 
   const MOUSE_RADIUS = 50.0;
   const isMobile = useIsMobile();
-  const pathname = usePathname();
-  const disableMouseInteractions = pathname !== "/";
+  // const pathname = usePathname();
+  // const disableMouseInteractions = pathname !== "/";
+  const disableMouseInteractions = true;
   const [isLoaded, setIsLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
@@ -182,6 +183,7 @@ export function FinalModel({
 
   const colorVectors = useMemo(() => {
     return colors.map(color => {
+      // Use the hex color values directly without conversion
       const c = new THREE.Color(color);
       return new THREE.Vector3(c.r, c.g, c.b);
     });

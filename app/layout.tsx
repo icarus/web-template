@@ -48,7 +48,7 @@ export default function RootLayout({
           <div className={cn(
             "-z-10 fixed inset-0 transition-opacity duration-500",
             pathname === '/' ? 'opacity-100' : 'opacity-25',
-            pathname === '/gif' && 'hidden'
+            pathname === '/gif' || pathname === '/pattern' && 'hidden'
           )}
           >
             <FinalModel modelPath="/models/logo2.gltf" />
