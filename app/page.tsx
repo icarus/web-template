@@ -288,9 +288,14 @@ export default function Model() {
               ref={centerRef}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: modelLoaded ? 1 : 0, opacity: modelLoaded ? 1 : 0 }}
+              drag
+              dragElastic={0.1}
+              dragTransition={{ bounceStiffness: 100, bounceDamping: 15 }}
+              whileDrag={{ scale: 1.2 }}
+              dragSnapToOrigin
               transition={{ duration: 0.5 }}
               className={cn(
-                "scale-100 size-4 bg-white ring-white ring-2 border-[5px] border-black shadow-2xl aspect-square"
+                "scale-100 size-4 bg-white ring-white ring-2 border-[6px] border-black shadow-2xl aspect-square cursor-grab active:cursor-grabbing"
               )}
             />
           </FloatingElement>

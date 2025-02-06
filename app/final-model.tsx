@@ -226,8 +226,8 @@ export function FinalModel({
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
       alpha: true,
-      antialias: true,
-      premultipliedAlpha: true,
+      antialias: false,
+      premultipliedAlpha: false,
       preserveDrawingBuffer: true
     });
     renderer.setPixelRatio(window.devicePixelRatio);
