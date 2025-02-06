@@ -35,61 +35,65 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
     if (!canvasRef.current) return;
     setRecording(true);
     const startTime = Date.now();
-
     const rect = canvasRef.current.getBoundingClientRect();
     const width = Math.floor(rect.width);
     const height = Math.floor(rect.height);
-
     const gif = new GIF({
-      workers: 2,
-      quality: 30,
-      workerScript: '/gif.worker.js',
-      width,
-      height
+    workers: 2,
+    quality: 10,
+    workerScript: '/gif.worker.js',
+    width,
+    height
     });
-
+    // Create a temporary canvas once, to reuse it for capturing frames.
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx) {
+    console.error("Could not get 2D context from temporary canvas.");
+    return;
+    }
     const captureFrame = () => {
-      if (!canvasRef.current) return;
-      const elapsed = Date.now() - startTime;
-      console.log('Capture frame at elapsed (ms):', elapsed);
-      const progress = Math.min(elapsed / durationMs, 1);
-      setForcedRotationAngle(progress * 2 * Math.PI);
-
-      // Add current canvas frame with a 100ms delay
-      gif.addFrame(canvasRef.current, { copy: true, delay: 100 });
-
-      if (elapsed < durationMs) {
-        setTimeout(captureFrame, 100);
-      } else {
-        console.log('Finished capturing frames. Rendering GIF.');
-        // Log total frames added (if available via the internal frames array)
-        // (gif as any).frames may contain the frames, so we log that
-
-        gif.on('progress', (p: number) => {
-          console.log('GIF rendering progress:', p);
-        });
-        gif.on('finished', (blob: Blob) => {
-          const url = URL.createObjectURL(blob);
-          console.log('GIF rendering finished. Blob URL:', url);
-          setGifUrl(url);
-          setForcedRotationAngle(undefined);
-          setRecording(false);
-        });
-        gif.on('error', (err: Error) => {
-          console.error('GIF rendering error:', err);
-        });
-        console.log('Calling gif.render() now.');
-        gif.render();
-        // If rendering takes too long, log an error after 30 seconds
-        setTimeout(() => {
-          console.error('GIF rendering is taking too long.');
-        }, 30000);
-        console.warn('Note: gif.js may not work properly in Next.js development mode with Fast Refresh. Please try a production build.');
-      }
+    if (!canvasRef.current) return;
+    const elapsed = Date.now() - startTime;
+    console.log("Capture frame at elapsed (ms):", elapsed);
+    const progress = Math.min(elapsed / durationMs, 1);
+    setForcedRotationAngle(progress * 2 * Math.PI);
+    // Clear and draw the current content of the WebGL canvas onto the temporary canvas.
+    tempCtx.clearRect(0, 0, width, height);
+    tempCtx.drawImage(canvasRef.current, 0, 0, width, height);
+    // Add the frame using the temporary canvas.
+    gif.addFrame(tempCanvas, { copy: true, delay: 200 });
+    console.log("Frame captured and added.");
+    if (elapsed < durationMs) {
+    setTimeout(captureFrame, 200);
+    } else {
+    console.log("Finished capturing frames. Rendering GIF.");
+    console.log("Total frames added:", gif.frames?.length ?? "unknown");
+    gif.on("progress", (p: number) => {
+    console.log("GIF rendering progress:", p);
+    });
+    gif.on("finished", (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    console.log("GIF rendering finished. Blob URL:", url);
+    setGifUrl(url);
+    setForcedRotationAngle(undefined);
+    setRecording(false);
+    });
+    gif.on("error", (err: Error) => {
+    console.error("GIF rendering error:", err);
+    });
+    console.log("Calling gif.render() now.");
+    gif.render();
+    setTimeout(() => {
+    console.error("GIF rendering is taking too long.");
+    }, 30000);
+    console.warn("Note: gif.js may not work properly in Next.js development mode with Fast Refresh. Please try a production build.");
+    }
     };
-
     captureFrame();
-  };
+    };
 
   const handleReset = () => {
     setRotationSpeed(0.0025);
