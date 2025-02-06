@@ -8,7 +8,7 @@ interface PixelPageProps {
   hiddenSide?: 'left' | 'right' | 'top' | 'bottom';
 }
 
-export default function PixelPage({ hiddenSide = 'right' }: PixelPageProps) {
+const PixelPage: React.FC<PixelPageProps> = ({ hiddenSide = 'right' }) => {
   const [copied, setCopied] = React.useState(false);
   const [numRows, setNumRows] = React.useState(20);
   const [numCols, setNumCols] = React.useState(20);
@@ -154,4 +154,6 @@ export default function PixelPage({ hiddenSide = 'right' }: PixelPageProps) {
       </div>
     </div>
   );
-}
+};
+
+export default PixelPage;
