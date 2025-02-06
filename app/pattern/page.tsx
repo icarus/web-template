@@ -12,7 +12,7 @@ export default function PixelPage({ hiddenSide = 'right' }: PixelPageProps) {
   const [copied, setCopied] = React.useState(false);
   const [numRows, setNumRows] = React.useState(20);
   const [numCols, setNumCols] = React.useState(20);
-  const [containerWidth, setContainerWidth] = React.useState(500);
+  const [containerWidth, ] = React.useState(500);
 
   // Calculate container height based on the ratio of rows to columns
   const containerHeight = React.useMemo(() => {
