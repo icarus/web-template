@@ -149,9 +149,9 @@ export function FinalModel({
   customResolution
 }: ModelProps) {
   const effectiveRotationSpeed = rotationSpeed ?? 0.0025;
-  const effectivePixelSize = pixelSize ?? 1.5;
-  const effectiveGapRatio = gapRatio ?? 2.0;
-  const effectiveResolution = customResolution ?? 512;
+  const effectivePixelSize = pixelSize ?? 2;
+  const effectiveGapRatio = gapRatio ?? 1.5;
+  const effectiveResolution = customResolution ?? 448;
 
   const MOUSE_RADIUS = 50.0;
   const isMobile = useIsMobile();

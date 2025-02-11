@@ -79,7 +79,6 @@ export default function Model() {
     const updateLines = () => {
       if (!centerRef.current) return;
 
-      // Get center point accounting for transforms
       const centerRect = centerRef.current.getBoundingClientRect();
       const centerX = centerRect.left + (centerRect.width / 2);
       const centerY = centerRect.top + (centerRect.height / 2);
@@ -90,14 +89,12 @@ export default function Model() {
         const yellowSquare = linkRef.querySelector('[data-yellow-square]');
         if (!yellowSquare) return;
 
-        // Get square position accounting for transforms
         const squareRect = yellowSquare.getBoundingClientRect();
         const squareX = squareRect.left + (squareRect.width / 2);
         const squareY = squareRect.top + (squareRect.height / 2);
 
         const line = lineRefs.current[index];
         if (line) {
-          // Update line positions
           line.setAttribute('x1', String(centerX));
           line.setAttribute('y1', String(centerY));
           line.setAttribute('x2', String(squareX));

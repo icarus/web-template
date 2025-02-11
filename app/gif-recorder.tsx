@@ -5,116 +5,97 @@ import { FinalModel } from "./final-model";
 import { Slider } from "../components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import GIF from 'gif.js';
+import GIFEncoder from 'gif-encoder-2';
 
 interface GifRecorderProps {
   modelPath: string;
   colors?: string[];
-  durationMs?: number;
 }
 
-export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorderProps) {
+export function GifRecorder({ modelPath, colors }: GifRecorderProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [recording, setRecording] = useState(false);
   const [gifUrl, setGifUrl] = useState<string>("");
-  const [recording, setRecording] = useState<boolean>(false);
   const [forcedRotationAngle, setForcedRotationAngle] = useState<number | undefined>(undefined);
 
+  // Controls state
   const [rotationSpeed, setRotationSpeed] = useState(0.0025);
-  const [pixelSize, setPixelSize] = useState(1.5);
-  const [gapRatio, setGapRatio] = useState(2.0);
-  const [customResolution, setCustomResolution] = useState(512);
+  const [pixelSize, setPixelSize] = useState(2.0);
+  const [gapRatio, setGapRatio] = useState(1.5);
+  const [customResolution, setCustomResolution] = useState(448);
   const [colorsPreset, setColorsPreset] = useState<"default" | "grayscale">("default");
 
   const defaultColors = ["#9C6323", "#F9A341", "#FFEC40"];
   const grayscaleColors = ["#121212", "#777777", "#BBBBBB"];
   const computedColors = colors || (colorsPreset === "grayscale" ? grayscaleColors : defaultColors);
 
-  const recordGif = () => {
+  const recordGif = async () => {
     if (!canvasRef.current) return;
     setRecording(true);
-    const startTime = Date.now();
-    const rect = canvasRef.current.getBoundingClientRect();
-    const width = Math.floor(rect.width);
-    const height = Math.floor(rect.height);
-    const gif = new GIF({
-    workers: 2,
-    quality: 10,
-    workerScript: '/gif.worker.js',
-    width,
-    height
-    });
-    // Create a temporary canvas once, to reuse it for capturing frames.
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = width;
-    tempCanvas.height = height;
-    const tempCtx = tempCanvas.getContext("2d");
-    if (!tempCtx) {
-    console.error("Could not get 2D context from temporary canvas.");
-    return;
+
+    const canvas = canvasRef.current;
+    const frames: ImageData[] = [];
+    const frameCount = 24;
+
+    // Create temporary canvas for correct color handling
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d')!;
+
+    // Capture frames
+    for (let i = 0; i < frameCount; i++) {
+      const angle = (i / frameCount) * Math.PI * 2;
+      setForcedRotationAngle(angle);
+
+      // Wait for state update and render to complete
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            // Draw WebGL canvas to temp canvas to ensure correct color handling
+            tempCtx.clearRect(0, 0, canvas.width, canvas.height);
+            tempCtx.drawImage(canvas, 0, 0);
+            frames.push(tempCtx.getImageData(0, 0, canvas.width, canvas.height));
+            resolve(null);
+          }, 100); // Increased delay to ensure render completes
+        });
+      });
     }
-    const captureFrame = () => {
-    if (!canvasRef.current) return;
-    const elapsed = Date.now() - startTime;
-    console.log("Capture frame at elapsed (ms):", elapsed);
-    const progress = Math.min(elapsed / durationMs, 1);
-    setForcedRotationAngle(progress * 2 * Math.PI);
-    // Clear and draw the current content of the WebGL canvas onto the temporary canvas.
-    tempCtx.clearRect(0, 0, width, height);
-    tempCtx.drawImage(canvasRef.current, 0, 0, width, height);
-    // Add the frame using the temporary canvas.
-    gif.addFrame(tempCanvas, { copy: true, delay: 200 });
-    console.log("Frame captured and added.");
-    if (elapsed < durationMs) {
-    setTimeout(captureFrame, 200);
-    } else {
-    console.log("Finished capturing frames. Rendering GIF.");
-    console.log("Total frames added:", gif.frames?.length ?? "unknown");
-    gif.on("progress", (p: number) => {
-    console.log("GIF rendering progress:", p);
+
+    // Create GIF with proper settings
+    const encoder = new GIFEncoder(canvas.width, canvas.height);
+    encoder.setDelay(50); // 50ms between frames = 20fps
+    encoder.setQuality(1); // Best quality
+    encoder.setRepeat(0); // Loop forever
+    encoder.start();
+
+    // Add frames to GIF
+    frames.forEach(frame => {
+      encoder.addFrame(frame.data);
     });
-    gif.on("finished", (blob: Blob) => {
+
+    encoder.finish();
+
+    // Create download URL
+    const buffer = encoder.out.getData();
+    const blob = new Blob([buffer], { type: 'image/gif' });
     const url = URL.createObjectURL(blob);
-    console.log("GIF rendering finished. Blob URL:", url);
+
     setGifUrl(url);
     setForcedRotationAngle(undefined);
     setRecording(false);
-    });
-    gif.on("error", (err: Error) => {
-    console.error("GIF rendering error:", err);
-    });
-    console.log("Calling gif.render() now.");
-    gif.render();
-    setTimeout(() => {
-    console.error("GIF rendering is taking too long.");
-    }, 30000);
-    console.warn("Note: gif.js may not work properly in Next.js development mode with Fast Refresh. Please try a production build.");
-    }
-    };
-    captureFrame();
-    };
+  };
 
   const handleReset = () => {
     setRotationSpeed(0.0025);
-    setPixelSize(1.5);
-    setGapRatio(2.0);
-    setCustomResolution(512);
+    setPixelSize(2.0);
+    setGapRatio(1.5);
+    setCustomResolution(448);
     setColorsPreset("default");
   };
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
-      <Button
-        variant="link"
-        className="absolute top-4 left-4 decoration-neutral-600 [&_svg]:text-neutral-500 hover:decoration-white underline uppercase font-mono px-0"
-        asChild
-      >
-        <Link href="/">
-          <ArrowLeft />
-          Volver
-        </Link>
-      </Button>
       <div className="flex flex-col gap-8 absolute top-4 right-4 z-20 bg-white/5 backdrop-blur-sm p-4 rounded-lg">
         <Button
           onClick={recordGif}
@@ -131,29 +112,35 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
           )}
           {recording ? "Grabando..." : "Grabar GIF"}
         </Button>
+
         {gifUrl && (
           <Button variant="outline" size="sm" className="-mt-6 disabled:opacity-100 md:group font-mono uppercase border-neutral-800 pl-2.5 pr-2 gap-1 hover:bg-white/10 transition-colors" asChild>
-            <Link href={gifUrl} download="rotation.gif" target="_blank" rel="noopener noreferrer">
+            <a href={gifUrl} download="rotation.gif">
               Descargar GIF
-            </Link>
+            </a>
           </Button>
         )}
+
         <div className="flex flex-col gap-4">
           <label>Velocidad de rotación {rotationSpeed.toFixed(4)}</label>
           <Slider value={[rotationSpeed]} min={0} max={0.02} step={0.0005} onValueChange={(val) => setRotationSpeed(val[0])} />
         </div>
+
         <div className="flex flex-col gap-4">
           <label>Tamaño de pixel {pixelSize.toFixed(2)}</label>
           <Slider value={[pixelSize]} min={0.5} max={5} step={0.1} onValueChange={(val) => setPixelSize(val[0])} />
         </div>
+
         <div className="flex flex-col gap-4">
           <label>Ratio del espaciado {gapRatio.toFixed(2)}</label>
           <Slider value={[gapRatio]} min={1} max={5} step={0.1} onValueChange={(val) => setGapRatio(val[0])} />
         </div>
+
         <div className="flex flex-col gap-4">
           <label>Resolución {customResolution}</label>
           <Slider value={[customResolution]} min={256} max={1024} step={64} onValueChange={(val) => setCustomResolution(val[0])} />
         </div>
+
         <div className="flex flex-col gap-2">
           <label>Colores</label>
           <Tabs
@@ -169,12 +156,12 @@ export function GifRecorder({ modelPath, colors, durationMs = 4000 }: GifRecorde
             <TabsContent value="grayscale" />
           </Tabs>
         </div>
+
         <Button className="uppercase font-mono text-sm" onClick={handleReset}>
           Resettear
         </Button>
       </div>
 
-      {/* Render the FinalModel and pass down the canvasRef and new parameters */}
       <FinalModel
         modelPath={modelPath}
         colors={computedColors}
