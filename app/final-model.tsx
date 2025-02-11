@@ -140,7 +140,7 @@ const fragmentShader = `
 
 export function FinalModel({
   modelPath,
-  colors = ["#A16207", "#F9BC12", "#FFEC40"],
+  colors = ["#A16207", "#F9A341", "#FFEC40"],
   canvasRef: externalCanvasRef,
   rotationSpeed,
   forcedRotationAngle,

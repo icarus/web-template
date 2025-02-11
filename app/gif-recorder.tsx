@@ -25,7 +25,7 @@ export function GifRecorder({ modelPath, colors }: GifRecorderProps) {
   const [customResolution, setCustomResolution] = useState(448);
   const [colorsPreset, setColorsPreset] = useState<"default" | "grayscale">("default");
 
-  const defaultColors = ["#9C6323", "#F9A341", "#FFEC40"];
+  const defaultColors = ["#A16207", "#F9A341", "#FFEC40"];
   const grayscaleColors = ["#121212", "#777777", "#BBBBBB"];
   const computedColors = colors || (colorsPreset === "grayscale" ? grayscaleColors : defaultColors);
 
