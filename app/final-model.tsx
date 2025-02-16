@@ -60,30 +60,46 @@ const fragmentShader = `
   vec3 colorama(vec2 uv, vec3 color) {
     float intensity = getColorIntensity(color);
 
+    vec2 centeredUV = uv * 2.0 - 1.0;
+    float angle = -0.3;
+    vec2 rotatedUV = vec2(
+      centeredUV.x * cos(angle) - centeredUV.y * sin(angle),
+      centeredUV.x * sin(angle) + centeredUV.y * cos(angle)
+    );
+    float yPos = (rotatedUV.y + 1.0) * 0.5;
+
+    float depthFactor = smoothstep(0.2, 0.8, intensity);
+    float factor = mix(yPos, depthFactor, 0.15);
+
     vec3 yellow = vec3(0.95, 0.89, 0.15); // #FFF140
     vec3 orange = vec3(0.8, 0.5, 0.03);   // #F9BC12
     vec3 brown = vec3(0.48, 0.23, 0.0);   // #864600
 
-    // Create stepped transitions with balanced yellow
-    if (intensity < 0.44) {               // Slightly increased yellow threshold
-      return yellow;
-    } else if (intensity < 0.47) {
-      return mix(yellow, orange, 0.3);
-    } else if (intensity < 0.50) {
-      return mix(yellow, orange, 0.6);
-    } else if (intensity < 0.53) {
-      return mix(yellow, orange, 0.9);
-    } else if (intensity < 0.58) {        // Slightly reduced orange range
-      return orange;
-    } else if (intensity < 0.61) {
-      return mix(orange, brown, 0.3);
-    } else if (intensity < 0.64) {
-      return mix(orange, brown, 0.6);
-    } else if (intensity < 0.67) {
-      return mix(orange, brown, 0.8);
+    // Get base color from bands with more yellow and shorter steps
+    vec3 baseColor;
+    if (factor < 0.4) {  // Increased yellow range
+      baseColor = yellow;
+    } else if (factor < 0.43) {  // Shorter steps
+      baseColor = mix(yellow, orange, 0.3);
+    } else if (factor < 0.46) {
+      baseColor = mix(yellow, orange, 0.6);
+    } else if (factor < 0.49) {
+      baseColor = mix(yellow, orange, 0.9);
+    } else if (factor < 0.55) {
+      baseColor = orange;
+    } else if (factor < 0.58) {  // Shorter steps for brown transition
+      baseColor = mix(orange, brown, 0.25);
+    } else if (factor < 0.61) {
+      baseColor = mix(orange, brown, 0.5);
+    } else if (factor < 0.64) {
+      baseColor = mix(orange, brown, 0.75);
     } else {
-      return brown;
+      baseColor = brown;
     }
+
+    // Apply depth darkening
+    float depthDarkening = mix(0.5, 1.0, depthFactor);
+    return baseColor * depthDarkening;
   }
 
   void main() {
