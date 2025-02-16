@@ -56,40 +56,49 @@ const fragmentShader = `
     return length(color);
   }
 
-  // Stepped color transition version
+  // Super smooth transition function
+  float smoothTransition(float edge0, float edge1, float x) {
+    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+    // Higher-order polynomial for extra smoothness
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+  }
+
+  // Create color bands with ultra-smooth transitions
   vec3 colorama(vec2 uv, vec3 color) {
     float intensity = getColorIntensity(color);
 
-    // Create a curved gradient that follows banana shape
-    vec2 centeredUV = uv * 2.0 - 1.0;  // Convert to -1 to 1 range
-
-    // Curve the gradient by adjusting Y based on X position
-    float curveAmount = 0.3;  // Adjust this to control curve amount
+    vec2 centeredUV = uv * 2.0 - 1.0;
+    float curveAmount = 0.27;
     float curvedY = uv.y + (sin(uv.x * 3.14159) * curveAmount);
 
-    float depthFactor = 1.0 - smoothstep(0.2, 0.8, intensity);
-    float factor = mix(curvedY, depthFactor, 0.1);  // Use curved Y for gradient
+    float depthFactor = 1.0 - smoothstep(0.2, 0.7, intensity);
+    float factor = mix(curvedY, depthFactor, 0.1);
 
-    vec3 yellow = vec3(0.95, 0.89, 0.15); // #FFF140
-    vec3 orange = vec3(0.8, 0.5, 0.03);   // #F9BC12
-    vec3 brown = vec3(0.55, 0.4, 0.0);    // Modified brown
+    vec3 yellow = vec3(0.95, 0.89, 0.15);     // #FFF140
+    vec3 orange = vec3(0.82, 0.45, 0.05);     // Less orange, more brownish
+    vec3 brown = vec3(0.35, 0.25, 0.0);       // Richer brown
+    vec3 darkBrown = vec3(0.3, 0.25, 0.0);   // Darker brown
 
-    // Create distinct color bands that follow the curve
+    // Create wider, smoother transitions between colors
     vec3 baseColor;
-    if (factor < 0.65) {  // Bottom - yellow
-      baseColor = yellow;
-    } else if (factor < 0.67) {  // Transition to orange
-      baseColor = mix(yellow, orange, smoothstep(0.35, 0.4, factor));
-    } else if (factor < 0.69) {  // Middle - orange
-      baseColor = orange;
-    } else if (factor < 0.71) {  // Transition to brown
-      baseColor = mix(orange, brown, smoothstep(0.6, 0.65, factor));
-    } else {  // Top - brown
-      baseColor = brown;
+    if (factor < 0.57) {                       // Reduced yellow range
+        baseColor = yellow;
+    } else if (factor < 0.67) {               // Transition to orange
+        float t = smoothTransition(0.50, 0.67, factor);
+        baseColor = mix(yellow, orange, t);
+    } else if (factor < 0.75) {               // Quick transition to brown
+        float t = smoothTransition(0.60, 0.75, factor);
+        baseColor = mix(orange, brown, t);
+    } else if (factor < 0.82) {               // Extended brown
+        baseColor = brown;
+    } else if (factor < 0.92) {               // Extended dark brown transition
+        float t = smoothTransition(0.82, 0.92, factor);
+        baseColor = mix(brown, darkBrown, t);
+    } else {
+        baseColor = darkBrown;
     }
 
-    // Apply depth darkening - further pixels are darker
-    float darkening = mix(0.4, 1.0, 1.0 - depthFactor);
+    float darkening = mix(0.3, 1.0, pow(1.0 - depthFactor, 0.8));
     return baseColor * darkening;
   }
 
@@ -169,9 +178,10 @@ const fragmentShader = `
 export function FinalModel({
   modelPath,
   colors = [
-    "#FFF140", // Brightest
-    "#F9BC12", // Middle
-    "#864600"  // Darkest
+    "#FFF140", // Brightest yellow
+    "#D17308", // Less orange, more brownish
+    "#8C5800", // Richer brown
+    "#593F00"  // Darker brown
   ],
   canvasRef: externalCanvasRef,
   rotationSpeed,
