@@ -38,6 +38,7 @@ const fragmentShader = `
   uniform float time;
   uniform float uPixelSize;
   uniform float uGapRatio;
+  uniform float uRotationAngle;
 
   varying vec2 vUv;
   varying float vDepth;
@@ -68,31 +69,48 @@ const fragmentShader = `
     float intensity = getColorIntensity(color);
 
     vec2 centeredUV = uv * 2.0 - 1.0;
-    float curveAmount = 0.27;
+    float baseAmount = 0.2;
+    float rotatedAmount = 0.18;  // Amount for side view
+
+    // Create peaks at 90° and 270° rotations
+    float angle = mod(uRotationAngle, 3.14159 * 2.0);
+    float dist90 = abs(angle - 3.14159 / 2.0);  // Distance from 90°
+    float dist270 = abs(angle - 3.14159 * 3.0 / 2.0);  // Distance from 270°
+    float normalizedDist = min(dist90, dist270) / (3.14159 / 2.0);  // Normalize to [0,1] over wider range
+
+    // Much smoother transition between curve amounts
+    float curveAmount = mix(
+        rotatedAmount,
+        baseAmount,
+        smoothstep(0.0, 0.8, normalizedDist)  // Wider smoothstep range for slower transition
+    );
+
     float curvedY = uv.y + (sin(uv.x * 3.14159) * curveAmount);
 
     float depthFactor = 1.0 - smoothstep(0.2, 0.7, intensity);
     float factor = mix(curvedY, depthFactor, 0.1);
 
     vec3 yellow = vec3(0.95, 0.89, 0.15);     // #FFF140
-    vec3 orange = vec3(0.82, 0.45, 0.05);     // Less orange, more brownish
+    vec3 orange = vec3(0.82, 0.5, 0.05);      // Less orange, more brownish
     vec3 brown = vec3(0.35, 0.25, 0.0);       // Richer brown
-    vec3 darkBrown = vec3(0.3, 0.25, 0.0);   // Darker brown
+    vec3 darkBrown = vec3(0.3, 0.25, 0.0);    // Darker brown
 
     // Create wider, smoother transitions between colors
     vec3 baseColor;
-    if (factor < 0.57) {                       // Reduced yellow range
+    if (factor < 0.53) {                      // Extended yellow base
         baseColor = yellow;
-    } else if (factor < 0.67) {               // Transition to orange
-        float t = smoothTransition(0.50, 0.67, factor);
+    } else if (factor < 0.56) {               // Yellow to orange transition
+        float t = smoothstep(0.53, 0.56, factor);
         baseColor = mix(yellow, orange, t);
-    } else if (factor < 0.75) {               // Quick transition to brown
-        float t = smoothTransition(0.60, 0.75, factor);
+    } else if (factor < 0.57) {               // Small orange range
+        baseColor = orange;
+    } else if (factor < 0.65) {               // Longer orange to brown transition
+        float t = smoothstep(0.57, 0.65, factor);
         baseColor = mix(orange, brown, t);
-    } else if (factor < 0.82) {               // Extended brown
+    } else if (factor < 0.78) {               // Extended brown range
         baseColor = brown;
-    } else if (factor < 0.92) {               // Extended dark brown transition
-        float t = smoothTransition(0.82, 0.92, factor);
+    } else if (factor < 0.88) {               // Wider brown to dark brown transition
+        float t = smoothstep(0.78, 0.88, factor);
         baseColor = mix(brown, darkBrown, t);
     } else {
         baseColor = darkBrown;
@@ -310,7 +328,8 @@ export function FinalModel({
         mouseRadius: { value: MOUSE_RADIUS },
         time: { value: 0.0 },
         uPixelSize: { value: effectivePixelSize },
-        uGapRatio: { value: effectiveGapRatio }
+        uGapRatio: { value: effectiveGapRatio },
+        uRotationAngle: { value: 0.0 }
       },
       vertexShader,
       fragmentShader,
@@ -345,6 +364,10 @@ export function FinalModel({
         } else {
           rotationAngleRef.current += effectiveRotationSpeed;
           modelRef.current.rotation.y = rotationAngleRef.current;
+        }
+
+        if (postMaterialRef.current) {
+          postMaterialRef.current.uniforms.uRotationAngle = { value: rotationAngleRef.current };
         }
       }
 
