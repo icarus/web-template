@@ -56,16 +56,33 @@ const fragmentShader = `
     return length(color);
   }
 
+  // Stepped color transition version
   vec3 colorama(vec2 uv, vec3 color) {
     float intensity = getColorIntensity(color);
 
-    // Sharp transitions based on color intensity
-    if (intensity < 0.5) {
-      return vec3(0.95, 0.89, 0.15); // #FFF140 - Low intensity
-    } else if (intensity < 0.6) {
-      return vec3(0.9, 0.45, 0.03); // #F9BC12 - Mid intensity
+    vec3 yellow = vec3(0.95, 0.89, 0.15); // #FFF140
+    vec3 orange = vec3(0.8, 0.5, 0.03);   // #F9BC12
+    vec3 brown = vec3(0.48, 0.23, 0.0);   // #864600
+
+    // Create stepped transitions with balanced yellow
+    if (intensity < 0.44) {               // Slightly increased yellow threshold
+      return yellow;
+    } else if (intensity < 0.47) {
+      return mix(yellow, orange, 0.3);
+    } else if (intensity < 0.50) {
+      return mix(yellow, orange, 0.6);
+    } else if (intensity < 0.53) {
+      return mix(yellow, orange, 0.9);
+    } else if (intensity < 0.58) {        // Slightly reduced orange range
+      return orange;
+    } else if (intensity < 0.61) {
+      return mix(orange, brown, 0.3);
+    } else if (intensity < 0.64) {
+      return mix(orange, brown, 0.6);
+    } else if (intensity < 0.67) {
+      return mix(orange, brown, 0.8);
     } else {
-      return vec3(0.48, 0.23, 0.0); // #864600 - High intensity
+      return brown;
     }
   }
 
