@@ -191,7 +191,7 @@ export default function Model() {
 
   return (
     <>
-      <div className="relative w-screen overflow-hidden h-svh">
+      <div className="hidden relative w-screen overflow-hidden h-svh">
         <div className="fixed -translate-x-1/2 left-1/2 py-2 md:py-12 top-0 flex items-center justify-center mx-auto max-w-screen-xl w-full z-50 h-16 transition-transform duration-300">
           <header className="flex pr-4 pl-6 md:px-6 w-full items-center justify-between max-w-screen-xl">
             <Link href="/" className="cursor-pointer">

@@ -32,7 +32,6 @@ const vertexShader = `
 const fragmentShader = `
   uniform sampler2D tDiffuse;
   uniform vec2 resolution;
-  uniform sampler2D colorLUT;
   uniform vec2 mousePos;
   uniform float mouseRadius;
   uniform vec2 lastMousePos;
@@ -52,20 +51,21 @@ const fragmentShader = `
     return fract(sin(h) * 43758.5453123);
   }
 
-  float getLuminance(vec3 color) {
-    return dot(color.rgb, vec3(0.299, 0.587, 0.114));
+  float getColorIntensity(vec3 color) {
+    // Calculate color intensity (magnitude of the color vector)
+    return length(color);
   }
 
-  vec3 colorama(float luminance) {
-    if (luminance > 0.3) {
-      return vec3(0.95, 0.89, 0.15); // #FFF140 adjusted for linear space
-    } else if (luminance > 0.25) {
-      return vec3(0.85, 0.55, 0.03); // #F9BC12 adjusted darker for linear space
-    } else if (luminance > 0.0) {
-      return vec3(0.48, 0.23, 0.0); // #864600 adjusted for linear space
+  vec3 colorama(vec2 uv, vec3 color) {
+    float intensity = getColorIntensity(color);
+
+    // Sharp transitions based on color intensity
+    if (intensity < 0.5) {
+      return vec3(0.95, 0.89, 0.15); // #FFF140 - Low intensity
+    } else if (intensity < 0.6) {
+      return vec3(0.85, 0.55, 0.03); // #F9BC12 - Mid intensity
     } else {
-      discard;
-      return vec3(0.0);
+      return vec3(0.48, 0.23, 0.0); // #864600 - High intensity
     }
   }
 
@@ -137,9 +137,7 @@ const fragmentShader = `
       return;
     }
 
-    float luma = getLuminance(texel.rgb);
-    vec3 colorized = colorama(luma);
-
+    vec3 colorized = colorama(attractedUV, texel.rgb);
     gl_FragColor = vec4(colorized, 1.0);
   }
 `;
@@ -269,35 +267,10 @@ export function FinalModel({
     const centerX = -200;
     const centerY = 0;
 
-    // Create LUT texture from colors
-    const lutWidth = 256;
-    const lutHeight = 1;
-    const lutData = new Uint8Array(lutWidth * lutHeight * 4);
-
-    // Fill LUT with just the bright yellow color
-    for (let i = 0; i < lutWidth; i++) {
-      const color = colorVectors[0]; // Always use bright yellow (#FFF140)
-
-      const idx = i * 4;
-      lutData[idx] = Math.floor(color.r * 255);
-      lutData[idx + 1] = Math.floor(color.g * 255);
-      lutData[idx + 2] = Math.floor(color.b * 255);
-      lutData[idx + 3] = 255;
-    }
-
-    const lutTexture = new THREE.DataTexture(
-      lutData,
-      lutWidth,
-      lutHeight,
-      THREE.RGBAFormat
-    );
-    lutTexture.needsUpdate = true;
-
     const postMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tDiffuse: { value: renderTargetRef.current.texture },
         resolution: { value: new THREE.Vector2(resolution, resolution) },
-        colorLUT: { value: lutTexture },
         mousePos: { value: new THREE.Vector2(centerX, centerY) },
         lastMousePos: { value: new THREE.Vector2(centerX, centerY) },
         mouseRadius: { value: MOUSE_RADIUS },
@@ -476,7 +449,6 @@ export function FinalModel({
       postMaterial.dispose();
       postQuad.geometry.dispose();
       renderTargetRef.current?.dispose();
-      lutTexture.dispose();
 
       sceneRef.current = null;
       cameraRef.current = null;
