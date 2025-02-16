@@ -63,7 +63,7 @@ const fragmentShader = `
     if (intensity < 0.5) {
       return vec3(0.95, 0.89, 0.15); // #FFF140 - Low intensity
     } else if (intensity < 0.6) {
-      return vec3(0.85, 0.55, 0.03); // #F9BC12 - Mid intensity
+      return vec3(0.9, 0.45, 0.03); // #F9BC12 - Mid intensity
     } else {
       return vec3(0.48, 0.23, 0.0); // #864600 - High intensity
     }
