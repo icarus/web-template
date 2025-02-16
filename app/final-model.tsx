@@ -32,7 +32,7 @@ const vertexShader = `
 const fragmentShader = `
   uniform sampler2D tDiffuse;
   uniform vec2 resolution;
-  uniform vec3 colors[3];
+  uniform sampler2D colorLUT;
   uniform vec2 mousePos;
   uniform float mouseRadius;
   uniform vec2 lastMousePos;
@@ -47,10 +47,26 @@ const fragmentShader = `
     return start + (end - start) * clamp(t, 0.0, 1.0);
   }
 
-  // Hash function for pseudo-random values
   float hash(vec2 p) {
     float h = dot(p, vec2(127.1, 311.7));
     return fract(sin(h) * 43758.5453123);
+  }
+
+  float getLuminance(vec3 color) {
+    return dot(color.rgb, vec3(0.299, 0.587, 0.114));
+  }
+
+  vec3 colorama(float luminance) {
+    if (luminance > 0.3) {
+      return vec3(1.0, 0.945, 0.25); // #FFF140 - Bright yellow
+    } else if (luminance > 0.2) {
+      return vec3(0.976, 0.737, 0.071); // #F9BC12 - Orange
+    } else if (luminance > 0.05) {
+      return vec3(0.525, 0.275, 0.0); // #864600 - Brown
+    } else {
+      discard;
+      return vec3(0.0);
+    }
   }
 
   void main() {
@@ -116,31 +132,28 @@ const fragmentShader = `
     // Sample texture at the attracted position
     vec4 texel = texture2D(tDiffuse, attractedUV);
 
-    // Only discard if completely transparent
     if(texel.a <= 0.0) {
       discard;
       return;
     }
 
-    // Calculate brightness and pick color from palette without any additional processing
-    float brightness = (texel.r + texel.g + texel.b) / 3.0;
-    vec3 color;
-    if(brightness < 0.22) {
-      color = colors[0];
-    } else if(brightness < 0.3) {
-      color = colors[1];
-    } else {
-      color = colors[2];
-    }
+    float luma = getLuminance(texel.rgb);
+    vec3 colorized = colorama(luma);
 
-    // Output the color directly without any additional processing
-    gl_FragColor = vec4(color, 1.0);
+    // Convert from linear to sRGB space
+    colorized = pow(colorized, vec3(1.0/2.2));
+
+    gl_FragColor = vec4(colorized, 1.0);
   }
 `;
 
 export function FinalModel({
   modelPath,
-  colors = ["#A16207", "#F9A341", "#FFEC40"],
+  colors = [
+    "#FFF140", // Brightest
+    "#F9BC12", // Middle
+    "#864600"  // Darkest
+  ],
   canvasRef: externalCanvasRef,
   rotationSpeed,
   forcedRotationAngle,
@@ -149,9 +162,9 @@ export function FinalModel({
   customResolution
 }: ModelProps) {
   const effectiveRotationSpeed = rotationSpeed ?? 0.0025;
-  const effectivePixelSize = pixelSize ?? 1.5;
-  const effectiveGapRatio = gapRatio ?? 2.5;
-  const effectiveResolution = customResolution ?? 512;
+  const effectivePixelSize = pixelSize ?? 1;
+  const effectiveGapRatio = gapRatio ?? 1.5;
+  const effectiveResolution = customResolution ?? 320 ;
 
   const MOUSE_RADIUS = 50.0;
   const isMobile = useIsMobile();
@@ -183,10 +196,10 @@ export function FinalModel({
   const resolution = effectiveResolution;
 
   const colorVectors = useMemo(() => {
-    return colors.map(color => {
-      // Use the hex color values directly without conversion
+    return colors.slice(0, 3).map(color => {
       const c = new THREE.Color(color);
-      return new THREE.Vector3(c.r, c.g, c.b);
+      c.convertSRGBToLinear();
+      return c;
     });
   }, [colors]);
 
@@ -259,11 +272,35 @@ export function FinalModel({
     const centerX = -200;
     const centerY = 0;
 
+    // Create LUT texture from colors
+    const lutWidth = 256;
+    const lutHeight = 1;
+    const lutData = new Uint8Array(lutWidth * lutHeight * 4);
+
+    // Fill LUT with just the bright yellow color
+    for (let i = 0; i < lutWidth; i++) {
+      const color = colorVectors[0]; // Always use bright yellow (#FFF140)
+
+      const idx = i * 4;
+      lutData[idx] = Math.floor(color.r * 255);
+      lutData[idx + 1] = Math.floor(color.g * 255);
+      lutData[idx + 2] = Math.floor(color.b * 255);
+      lutData[idx + 3] = 255;
+    }
+
+    const lutTexture = new THREE.DataTexture(
+      lutData,
+      lutWidth,
+      lutHeight,
+      THREE.RGBAFormat
+    );
+    lutTexture.needsUpdate = true;
+
     const postMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tDiffuse: { value: renderTargetRef.current.texture },
         resolution: { value: new THREE.Vector2(resolution, resolution) },
-        colors: { value: colorVectors },
+        colorLUT: { value: lutTexture },
         mousePos: { value: new THREE.Vector2(centerX, centerY) },
         lastMousePos: { value: new THREE.Vector2(centerX, centerY) },
         mouseRadius: { value: MOUSE_RADIUS },
@@ -442,6 +479,7 @@ export function FinalModel({
       postMaterial.dispose();
       postQuad.geometry.dispose();
       renderTargetRef.current?.dispose();
+      lutTexture.dispose();
 
       sceneRef.current = null;
       cameraRef.current = null;

@@ -20,9 +20,9 @@ export function GifRecorder({ modelPath, colors }: GifRecorderProps) {
 
   // Controls state
   const [rotationSpeed, setRotationSpeed] = useState(0.0025);
-  const [pixelSize, setPixelSize] = useState(2.0);
-  const [gapRatio, setGapRatio] = useState(1.5);
-  const [customResolution, setCustomResolution] = useState(448);
+  const [pixelSize, setPixelSize] = useState(1.5);
+  const [gapRatio, setGapRatio] = useState(2.5);
+  const [customResolution, setCustomResolution] = useState(512);
   const [colorsPreset, setColorsPreset] = useState<"default" | "grayscale">("default");
 
   const defaultColors = ["#A16207", "#F9A341", "#FFEC40"];
@@ -88,9 +88,9 @@ export function GifRecorder({ modelPath, colors }: GifRecorderProps) {
 
   const handleReset = () => {
     setRotationSpeed(0.0025);
-    setPixelSize(2.0);
-    setGapRatio(1.5);
-    setCustomResolution(448);
+    setPixelSize(1.5);
+    setGapRatio(2.5);
+    setCustomResolution(512);
     setColorsPreset("default");
   };
 
