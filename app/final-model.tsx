@@ -60,46 +60,37 @@ const fragmentShader = `
   vec3 colorama(vec2 uv, vec3 color) {
     float intensity = getColorIntensity(color);
 
-    vec2 centeredUV = uv * 2.0 - 1.0;
-    float angle = -0.3;
-    vec2 rotatedUV = vec2(
-      centeredUV.x * cos(angle) - centeredUV.y * sin(angle),
-      centeredUV.x * sin(angle) + centeredUV.y * cos(angle)
-    );
-    float yPos = (rotatedUV.y + 1.0) * 0.5;
+    // Create a curved gradient that follows banana shape
+    vec2 centeredUV = uv * 2.0 - 1.0;  // Convert to -1 to 1 range
 
-    float depthFactor = smoothstep(0.2, 0.8, intensity);
-    float factor = mix(yPos, depthFactor, 0.15);
+    // Curve the gradient by adjusting Y based on X position
+    float curveAmount = 0.3;  // Adjust this to control curve amount
+    float curvedY = uv.y + (sin(uv.x * 3.14159) * curveAmount);
+
+    float depthFactor = 1.0 - smoothstep(0.2, 0.8, intensity);
+    float factor = mix(curvedY, depthFactor, 0.1);  // Use curved Y for gradient
 
     vec3 yellow = vec3(0.95, 0.89, 0.15); // #FFF140
     vec3 orange = vec3(0.8, 0.5, 0.03);   // #F9BC12
-    vec3 brown = vec3(0.48, 0.23, 0.0);   // #864600
+    vec3 brown = vec3(0.55, 0.4, 0.0);    // Modified brown
 
-    // Get base color from bands with more yellow and shorter steps
+    // Create distinct color bands that follow the curve
     vec3 baseColor;
-    if (factor < 0.4) {  // Increased yellow range
+    if (factor < 0.65) {  // Bottom - yellow
       baseColor = yellow;
-    } else if (factor < 0.43) {  // Shorter steps
-      baseColor = mix(yellow, orange, 0.3);
-    } else if (factor < 0.46) {
-      baseColor = mix(yellow, orange, 0.6);
-    } else if (factor < 0.49) {
-      baseColor = mix(yellow, orange, 0.9);
-    } else if (factor < 0.55) {
+    } else if (factor < 0.67) {  // Transition to orange
+      baseColor = mix(yellow, orange, smoothstep(0.35, 0.4, factor));
+    } else if (factor < 0.69) {  // Middle - orange
       baseColor = orange;
-    } else if (factor < 0.58) {  // Shorter steps for brown transition
-      baseColor = mix(orange, brown, 0.25);
-    } else if (factor < 0.61) {
-      baseColor = mix(orange, brown, 0.5);
-    } else if (factor < 0.64) {
-      baseColor = mix(orange, brown, 0.75);
-    } else {
+    } else if (factor < 0.71) {  // Transition to brown
+      baseColor = mix(orange, brown, smoothstep(0.6, 0.65, factor));
+    } else {  // Top - brown
       baseColor = brown;
     }
 
-    // Apply depth darkening
-    float depthDarkening = mix(0.5, 1.0, depthFactor);
-    return baseColor * depthDarkening;
+    // Apply depth darkening - further pixels are darker
+    float darkening = mix(0.4, 1.0, 1.0 - depthFactor);
+    return baseColor * darkening;
   }
 
   void main() {
