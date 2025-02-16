@@ -58,11 +58,11 @@ const fragmentShader = `
 
   vec3 colorama(float luminance) {
     if (luminance > 0.3) {
-      return vec3(1.0, 0.945, 0.25); // #FFF140 - Bright yellow
-    } else if (luminance > 0.2) {
-      return vec3(0.976, 0.737, 0.071); // #F9BC12 - Orange
-    } else if (luminance > 0.05) {
-      return vec3(0.525, 0.275, 0.0); // #864600 - Brown
+      return vec3(0.95, 0.89, 0.15); // #FFF140 adjusted for linear space
+    } else if (luminance > 0.25) {
+      return vec3(0.85, 0.55, 0.03); // #F9BC12 adjusted darker for linear space
+    } else if (luminance > 0.0) {
+      return vec3(0.48, 0.23, 0.0); // #864600 adjusted for linear space
     } else {
       discard;
       return vec3(0.0);
@@ -139,9 +139,6 @@ const fragmentShader = `
 
     float luma = getLuminance(texel.rgb);
     vec3 colorized = colorama(luma);
-
-    // Convert from linear to sRGB space
-    colorized = pow(colorized, vec3(1.0/2.2));
 
     gl_FragColor = vec4(colorized, 1.0);
   }
