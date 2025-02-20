@@ -1,6 +1,14 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
 
 const ASCII_SETS = {
   standard: ' .:-=+*#%@',
@@ -11,18 +19,28 @@ const ASCII_SETS = {
 
 type AsciiSet = keyof typeof ASCII_SETS;
 
+const YELLOW_COLORS = ['rgb(253, 224, 71)', 'rgb(234, 179, 8)', 'rgb(133, 77, 14)']; // yellow-300, yellow-500, yellow-800
+
 interface Settings {
   width: number;
   contrast: number;
   brightness: number;
   asciiSet: AsciiSet;
+  colorScheme: 'white' | 'yellow';
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  width: 130,
+  width: 96,
   contrast: 1,
   brightness: 1,
-  asciiSet: 'standard'
+  asciiSet: 'standard',
+  colorScheme: 'white'
+};
+
+const calculateScale = (containerWidth: number, containerHeight: number, contentWidth: number, contentHeight: number) => {
+  const scaleX = containerWidth / contentWidth;
+  const scaleY = containerHeight / contentHeight;
+  return Math.min(scaleX, scaleY) * 0.9;
 };
 
 const AsciiPage = () => {
@@ -30,9 +48,43 @@ const AsciiPage = () => {
   const [svgContent, setSvgContent] = useState<string>('');
   const [currentImage, setCurrentImage] = useState<HTMLImageElement | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [scale, setScale] = useState(0.9);
+  const [copied, setCopied] = useState(false);
+  const [colorSeed, setColorSeed] = useState<string[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !asciiArt) return;
+
+    const updateScale = () => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const lines = asciiArt.split('\n');
+      const charWidth = 8 * (130 / settings.width); // Match fontSize calculation
+      const lineHeight = charWidth * 1.15; // Match lineHeight
+
+      const contentWidth = lines[0]?.length * charWidth || 0;
+      const contentHeight = lines.length * lineHeight;
+
+      const newScale = calculateScale(
+        container.clientWidth - 48, // Subtract padding (p-6 = 24px * 2)
+        container.clientHeight - 48,
+        contentWidth,
+        contentHeight
+      );
+
+      setScale(newScale);
+    };
+
+    const resizeObserver = new ResizeObserver(updateScale);
+    resizeObserver.observe(containerRef.current);
+    updateScale();
+
+    return () => resizeObserver.disconnect();
+  }, [asciiArt, settings.width]);
 
   const updateImage = () => {
     if (!currentImage) return;
@@ -117,7 +169,34 @@ const AsciiPage = () => {
   const processImageData = (imageData: ImageData): string => {
     const ascii = ASCII_SETS[settings.asciiSet];
     let result = '';
+    let chars = 0;
+    let positions: number[] = []; // Store positions of non-space characters
 
+    // First pass: count non-space chars and store their positions
+    for (let y = 0; y < imageData.height; y++) {
+      for (let x = 0; x < imageData.width; x++) {
+        const idx = (y * imageData.width + x) * 4;
+        const r = imageData.data[idx];
+        const g = imageData.data[idx + 1];
+        const b = imageData.data[idx + 2];
+
+        const brightness = (r + g + b) / 3;
+        const charIndex = Math.floor((brightness / 255) * (ascii.length - 1));
+        if (ascii[charIndex] !== ' ') {
+          positions.push(y * imageData.width + x);
+          chars++;
+        }
+      }
+    }
+
+    // Generate new color seed with position mapping
+    const newColorSeed = new Array(imageData.width * imageData.height).fill('white');
+    positions.forEach(pos => {
+      newColorSeed[pos] = YELLOW_COLORS[Math.floor(Math.random() * YELLOW_COLORS.length)];
+    });
+    setColorSeed(newColorSeed);
+
+    // Generate ASCII art
     for (let y = 0; y < imageData.height; y++) {
       for (let x = 0; x < imageData.width; x++) {
         const idx = (y * imageData.width + x) * 4;
@@ -137,28 +216,56 @@ const AsciiPage = () => {
 
   const convertAsciiToSvg = (ascii: string): string => {
     const lines = ascii.split('\n');
-    const lineHeight = 15;
-    const charWidth = 9;
+    const fontSize = 8 * (130 / settings.width);
+    const lineHeight = fontSize * 1.15;
+    const charWidth = fontSize * 0.575;
 
-    const width = lines[0]?.length * charWidth || 0;
-    const height = lines.length * lineHeight;
+    const contentWidth = lines[0]?.length * charWidth;
+    const contentHeight = lines.length * lineHeight;
+
+    // Create a seed for consistent random colors
+    const colorSeed = new Array(lines.join('').length)
+      .fill(0)
+      .map(() => YELLOW_COLORS[Math.floor(Math.random() * YELLOW_COLORS.length)]);
 
     let svgText = '';
+    let charCount = 0;
+
     lines.forEach((line, i) => {
-      Array.from(line).forEach((char, j) => { // Using Array.from instead of spread to fix TS error
-        if (char !== ' ') { // Skip spaces to reduce file size
-          svgText += `<text x="${j * charWidth}" y="${(i + 1) * lineHeight}"
-            fill="white" font-family="monospace" font-size="12px">${char}</text>`;
+      Array.from(line).forEach((char, j) => {
+        if (char !== ' ') {
+          const color = settings.colorScheme === 'yellow'
+            ? colorSeed[charCount]
+            : 'white';
+
+          svgText += `<text
+            x="${j * charWidth}"
+            y="${(i + 1) * lineHeight}"
+            font-family="monospace"
+            font-size="${fontSize}px"
+            fill="${color}"
+            style="white-space: pre; letter-spacing: 0"
+          >${char}</text>`;
+
+          charCount++;
         }
       });
     });
 
     return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
+      <svg width="${contentWidth}" height="${contentHeight}" viewBox="0 0 ${contentWidth} ${contentHeight}"
         xmlns="http://www.w3.org/2000/svg">
-        <g>
-          ${svgText}
-        </g>
+        <style>
+          text {
+            font-family: monospace;
+            letter-spacing: 0;
+          }
+          @font-face {
+            font-family: monospace;
+            src: local("Courier New");
+          }
+        </style>
+        ${svgText}
       </svg>`;
   };
 
@@ -180,12 +287,14 @@ const AsciiPage = () => {
     if (!svgContent) return;
     try {
       await navigator.clipboard.writeText(svgContent);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
     } catch (err) {
       console.error('Failed to copy SVG:', err);
     }
   };
 
-  const handleSettingChange = (key: keyof Settings, value: number | AsciiSet) => {
+  const handleSettingChange = (key: keyof Settings, value: number | AsciiSet | 'white' | 'yellow') => {
     setSettings(prev => ({ ...prev, [key]: value }));
     updateImage();
   };
@@ -219,20 +328,39 @@ const AsciiPage = () => {
             <div className="space-y-6">
               <div
                 ref={containerRef}
-                className="rounded-lg border border-neutral-800 p-6 shadow-sm overflow-hidden h-[60vh]"
+                className="rounded-lg border border-neutral-800 p-6 shadow-sm overflow-hidden h-[60vh] flex items-center justify-center"
               >
                 <pre
-                  className="font-mono leading-[1.1] whitespace-pre text-center w-full h-full overflow-hidden"
+                  className="font-mono whitespace-pre w-fit"
                   style={{
                     fontSize: `calc(${8 * (130 / settings.width)}px)`,
-                    transform: 'scale(0.9)',
+                    lineHeight: '1.15',
+                    transform: `scale(${scale})`,
                     transformOrigin: 'center',
-                    maxWidth: '100%',
-                    margin: '0 auto',
-                    display: 'block',
+                    color: settings.colorScheme === 'yellow' ? 'rgb(253, 224, 71)' : 'white',
                   }}
                 >
-                  {asciiArt}
+                  {asciiArt.split('\n').map((line, i) => (
+                    <div key={i}>
+                      {Array.from(line).map((char, j) => {
+                        const pos = i * settings.width + j;
+                        return (
+                          <span
+                            key={`${i}-${j}`}
+                            style={{
+                              color: settings.colorScheme === 'yellow' && char !== ' '
+                                ? colorSeed[pos]
+                                : 'white',
+                              fontSize: `calc(${8 * (130 / settings.width)}px)`,
+                              lineHeight: '1.15',
+                            }}
+                          >
+                            {char}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </pre>
               </div>
             </div>
@@ -241,16 +369,14 @@ const AsciiPage = () => {
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm text-neutral-400">Resolution</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="range"
-                      min="50"
-                      max="200"
-                      value={settings.width}
-                      onChange={(e) => handleSettingChange('width', Number(e.target.value))}
-                      className="flex-1 accent-yellow-300"
-                    />
-                  </div>
+                  <Slider
+                    min={50}
+                    max={200}
+                    step={1}
+                    value={[settings.width]}
+                    onValueChange={([value]) => handleSettingChange('width', value)}
+                    className="accent-yellow-300"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -281,16 +407,36 @@ const AsciiPage = () => {
 
                 <div className="space-y-2">
                   <label className="text-sm text-neutral-400">Character Set</label>
-                  <select
+                  <Select
                     value={settings.asciiSet}
-                    onChange={(e) => handleSettingChange('asciiSet', e.target.value as AsciiSet)}
-                    className="w-full bg-neutral-800 border-neutral-700 rounded-md text-sm"
+                    onValueChange={(value: AsciiSet) => handleSettingChange('asciiSet', value)}
                   >
-                    <option value="standard">Standard</option>
-                    <option value="simple">Simple</option>
-                    <option value="blocks">Blocks</option>
-                    <option value="detailed">Detailed</option>
-                  </select>
+                    <SelectTrigger className="w-full bg-neutral-800 border-neutral-700">
+                      <SelectValue placeholder="Select character set" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="simple">Simple</SelectItem>
+                      <SelectItem value="blocks">Blocks</SelectItem>
+                      <SelectItem value="detailed">Detailed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-neutral-400">Color Scheme</label>
+                  <Select
+                    value={settings.colorScheme}
+                    onValueChange={(value: 'white' | 'yellow') => handleSettingChange('colorScheme', value)}
+                  >
+                    <SelectTrigger className="w-full bg-neutral-800 border-neutral-700">
+                      <SelectValue placeholder="Select color scheme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="white">White</SelectItem>
+                      <SelectItem value="yellow">Yellow</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -322,11 +468,12 @@ const AsciiPage = () => {
         <button
           onClick={copyToClipboard}
           disabled={!svgContent}
-          className="grayscale inline-flex items-center px-4 py-2
+          className={`grayscale inline-flex items-center px-4 py-2
             border border-yellow-300 bg-yellow-300/15 hover:brightness-90 backdrop-blur-sm text-yellow-300 uppercase text-sm font-mono
-            transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+            transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
+            ${copied ? 'border-green-400 text-green-400 !grayscale-0' : ''}`}
         >
-          Copy SVG
+          {copied ? 'Copied!' : 'Copy SVG'}
         </button>
       </div>
     </main>
