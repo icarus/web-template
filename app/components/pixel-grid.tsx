@@ -15,6 +15,9 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
   const [containerWidth] = React.useState(500);
   const [containerHeight] = React.useState(500);
   const [hiddenSide, setHiddenSide] = React.useState<'left' | 'right' | 'top' | 'bottom'>(initialHiddenSide);
+  const [hiddenPercentage, setHiddenPercentage] = React.useState(75);
+  const [completelyHiddenPercentage, setCompletelyHiddenPercentage] = React.useState(50);
+  const [colorScheme, setColorScheme] = React.useState<'color' | 'grayscale'>('color');
   const [randomSeed, setRandomSeed] = React.useState<number>();
 
   React.useEffect(() => {
@@ -57,34 +60,47 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
       const col = index % numCols;
       const random = seededRandom(index + randomSeed);
 
-      let hideChance = 0;
+      const fadePoint = (hiddenPercentage / 100);
+      const completePoint = (completelyHiddenPercentage / 100);
+
+      // Calculate normalized distance from the non-hidden edge (0 to 1)
+      let distanceFromEdge;
       if (hiddenSide === 'left') {
-        hideChance = 1 - (col / (numCols / 2));
+        distanceFromEdge = col / numCols;
       } else if (hiddenSide === 'right') {
-        hideChance = (col - numCols / 2) / (numCols / 2);
+        distanceFromEdge = (numCols - col - 1) / numCols;
       } else if (hiddenSide === 'top') {
-        hideChance = 1 - (row / (numRows / 2));
-      } else if (hiddenSide === 'bottom') {
-        hideChance = (row - numRows / 2) / (numRows / 2);
+        distanceFromEdge = row / numRows;
+      } else { // bottom
+        distanceFromEdge = (numRows - row - 1) / numRows;
       }
 
-      const isInHiddenSide = (
-        (hiddenSide === 'left' && col < numCols / 2) ||
-        (hiddenSide === 'right' && col >= numCols / 2) ||
-        (hiddenSide === 'top' && row < numRows / 2) ||
-        (hiddenSide === 'bottom' && row >= numRows / 2)
-      );
-
-      if (isInHiddenSide && seededRandom(random * 1000) < hideChance) {
+      // Check if in completely hidden area first
+      if (distanceFromEdge < completePoint) {
         return null;
       }
 
+      // Calculate fade for remaining area
+      const remainingDistance = (distanceFromEdge - completePoint) / (fadePoint - completePoint);
+      const hideChance = Math.pow(1 - Math.min(remainingDistance, 1), 2) * 100;
+
+      if (random * 100 < hideChance) {
+        return null;
+      }
+
+      // Rest of the color logic remains the same
       const colorRand = seededRandom(random * 2000);
-      if (colorRand < 0.1) return "#9C6323";
-      if (colorRand < 0.4) return "#F9A341";
-      return "#FFEC40";
+      if (colorScheme === 'grayscale') {
+        if (colorRand < 0.1) return "#A3A3A3";
+        if (colorRand < 0.4) return "#525252";
+        return "#171717";
+      } else {
+        if (colorRand < 0.1) return "#9C6323";
+        if (colorRand < 0.4) return "#F9A341";
+        return "#FFEC40";
+      }
     });
-  }, [numRows, numCols, hiddenSide, randomSeed]);
+  }, [numRows, numCols, hiddenSide, randomSeed, hiddenPercentage, completelyHiddenPercentage, colorScheme]);
 
   const handleCopySVG = () => {
     const svgElement = document.querySelector('svg');
@@ -103,8 +119,12 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
     }
   };
 
+  const handleRandomize = () => {
+    setRandomSeed(Math.random());
+  };
+
   return (
-    <div className="w-screen h-screen flex items-center justify-center">
+    <div className="w-screen h-screen flex items-center justify-center bg-neutral-900">
       <div className="absolute top-4 right-12 p-16 flex flex-col items-center gap-8">
         <div className="flex flex-col gap-4 w-64">
           <Tabs defaultValue={hiddenSide} onValueChange={(value) => setHiddenSide(value as typeof hiddenSide)}>
@@ -115,6 +135,35 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
               <TabsTrigger value="bottom">Bottom</TabsTrigger>
             </TabsList>
           </Tabs>
+
+          <Tabs defaultValue={colorScheme} onValueChange={(value) => setColorScheme(value as typeof colorScheme)}>
+            <TabsList>
+              <TabsTrigger value="color">Color</TabsTrigger>
+              <TabsTrigger value="grayscale">Grayscale</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Completely Hidden: {completelyHiddenPercentage}%</p>
+            <Slider
+              value={[completelyHiddenPercentage]}
+              onValueChange={(value) => setCompletelyHiddenPercentage(value[0])}
+              min={0}
+              max={100}
+              step={5}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Fade Area: {hiddenPercentage}%</p>
+            <Slider
+              value={[hiddenPercentage]}
+              onValueChange={(value) => setHiddenPercentage(Math.max(value[0], completelyHiddenPercentage))}
+              min={0}
+              max={100}
+              step={5}
+            />
+          </div>
 
           <div className="space-y-2">
             <p className="text-sm font-medium">Number of Rows: {numRows}</p>
@@ -136,16 +185,24 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
               step={1}
             />
           </div>
-          <Button
-            onClick={handleCopySVG}
-            className="mt-6 font-mono uppercase border-neutral-800 hover:bg-white/10 transition-colors"
-          >
-            {copied ? 'Copied!' : 'Copy SVG'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleCopySVG}
+              className="flex-1 font-mono uppercase border-neutral-800 hover:bg-white/10 transition-colors"
+            >
+              {copied ? 'Copied!' : 'Copy SVG'}
+            </Button>
+            <Button
+              onClick={handleRandomize}
+              className="flex-1 font-mono uppercase border-neutral-800 hover:bg-white/10 transition-colors"
+            >
+              Randomize
+            </Button>
+          </div>
         </div>
       </div>
       <div
-        className="flex rounded-lg border border-white/20"
+        className="flex bg-black"
         style={{
           width: containerWidth,
           height: containerHeight,
