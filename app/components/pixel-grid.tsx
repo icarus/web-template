@@ -17,19 +17,15 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
   const [hiddenSide, setHiddenSide] = React.useState<'left' | 'right' | 'top' | 'bottom'>(initialHiddenSide);
   const [randomSeed, setRandomSeed] = React.useState<number>();
 
-  // Initialize random seed on client-side only
   React.useEffect(() => {
     setRandomSeed(Math.random());
   }, []);
 
-  // Calculate sizes to fill container completely
   const { pixelSize, gapSize } = React.useMemo(() => {
-    // Calculate total units needed (1 unit for pixel + 4 units for gap)
-    const unitsPerCell = 5; // 1 for pixel + 4 for gap
-    const totalUnitsPerRow = (numCols * unitsPerCell) - 4; // Subtract gap units for last column
-    const totalUnitsPerCol = (numRows * unitsPerCell) - 4; // Subtract gap units for last row
+    const unitsPerCell = 5;
+    const totalUnitsPerRow = (numCols * unitsPerCell) - 4;
+    const totalUnitsPerCol = (numRows * unitsPerCell) - 4;
 
-    // Calculate unit size based on available space
     const unitFromWidth = containerWidth / totalUnitsPerRow;
     const unitFromHeight = containerHeight / totalUnitsPerCol;
     const unit = Math.min(unitFromWidth, unitFromHeight);
@@ -38,15 +34,13 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
 
     return {
       pixelSize: finalPixelSize,
-      gapSize: finalPixelSize * 4 // Gap between pixels is 4x pixel size
+      gapSize: finalPixelSize * 4
     };
   }, [containerWidth, containerHeight, numRows, numCols]);
 
-  // Calculate total grid size including pixel-sized padding
   const gridWidth = (numCols * pixelSize) + ((numCols - 1) * gapSize) + (pixelSize * 2);
   const gridHeight = (numRows * pixelSize) + ((numRows - 1) * gapSize) + (pixelSize * 2);
 
-  // Calculate centering offsets
   const offsetX = (containerWidth - gridWidth) / 2;
   const offsetY = (containerHeight - gridHeight) / 2;
 
@@ -63,7 +57,6 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
       const col = index % numCols;
       const random = seededRandom(index + randomSeed);
 
-      // Calculate progressive hiding probability based on position
       let hideChance = 0;
       if (hiddenSide === 'left') {
         hideChance = 1 - (col / (numCols / 2));
@@ -100,7 +93,6 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
       navigator.clipboard.writeText(svgString)
         .then(() => {
           setCopied(true);
-          // Reset the button text after 2 seconds
           setTimeout(() => {
             setCopied(false);
           }, 2000);
@@ -160,7 +152,7 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = '
         }}
       >
         <svg
-          className="w-full h-full bg-red-500"
+          className="w-full h-full"
           viewBox={`0 0 ${containerWidth} ${containerHeight}`}
           preserveAspectRatio="none"
         >
