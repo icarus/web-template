@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import React from 'react';
 
 interface PixelGridProps {
@@ -7,44 +8,73 @@ interface PixelGridProps {
   hiddenSide?: 'left' | 'right' | 'top' | 'bottom';
 }
 
-const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide = 'right' }) => {
+const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide: initialHiddenSide = 'right' }) => {
   const [copied, setCopied] = React.useState(false);
   const [numRows, setNumRows] = React.useState(20);
   const [numCols, setNumCols] = React.useState(20);
   const [containerWidth] = React.useState(500);
+  const [containerHeight] = React.useState(500);
+  const [hiddenSide, setHiddenSide] = React.useState<'left' | 'right' | 'top' | 'bottom'>(initialHiddenSide);
+  const [randomSeed, setRandomSeed] = React.useState<number>();
 
-  // Calculate container height based on the ratio of rows to columns
-  const containerHeight = React.useMemo(() => {
-    return containerWidth * (numRows / numCols);
-  }, [containerWidth, numRows, numCols]);
+  // Initialize random seed on client-side only
+  React.useEffect(() => {
+    setRandomSeed(Math.random());
+  }, []);
 
-  const colorProbabilities = React.useMemo(() => ({
-    "#9C6323": 0.1, // 10% chance of brown
-    "#F9A341": 0.3, // 30% chance of orange
-    "#FFEC40": 0.6  // 60% chance of yellow
-  }), []);
+  // Calculate sizes to fill container completely
+  const { pixelSize, gapSize } = React.useMemo(() => {
+    // Calculate total units needed (1 unit for pixel + 4 units for gap)
+    const unitsPerCell = 5; // 1 for pixel + 4 for gap
+    const totalUnitsPerRow = (numCols * unitsPerCell) - 4; // Subtract gap units for last column
+    const totalUnitsPerCol = (numRows * unitsPerCell) - 4; // Subtract gap units for last row
 
-  const pixelSize = 20;
-  const gapSize = pixelSize * 4;
+    // Calculate unit size based on available space
+    const unitFromWidth = containerWidth / totalUnitsPerRow;
+    const unitFromHeight = containerHeight / totalUnitsPerCol;
+    const unit = Math.min(unitFromWidth, unitFromHeight);
 
-  const randomPixels = React.useMemo(() =>
-    Array.from({ length: numRows * numCols }, (_, index) => {
+    const finalPixelSize = Math.floor(unit);
+
+    return {
+      pixelSize: finalPixelSize,
+      gapSize: finalPixelSize * 4 // Gap between pixels is 4x pixel size
+    };
+  }, [containerWidth, containerHeight, numRows, numCols]);
+
+  // Calculate total grid size including pixel-sized padding
+  const gridWidth = (numCols * pixelSize) + ((numCols - 1) * gapSize) + (pixelSize * 2);
+  const gridHeight = (numRows * pixelSize) + ((numRows - 1) * gapSize) + (pixelSize * 2);
+
+  // Calculate centering offsets
+  const offsetX = (containerWidth - gridWidth) / 2;
+  const offsetY = (containerHeight - gridHeight) / 2;
+
+  const randomPixels = React.useMemo(() => {
+    if (typeof randomSeed === 'undefined') return [];
+
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    };
+
+    return Array.from({ length: numRows * numCols }, (_, index) => {
       const row = Math.floor(index / numCols);
       const col = index % numCols;
+      const random = seededRandom(index + randomSeed);
 
       // Calculate progressive hiding probability based on position
       let hideChance = 0;
       if (hiddenSide === 'left') {
-        hideChance = 1 - (col / (numCols / 2)); // 100% at left edge, 0% at middle
+        hideChance = 1 - (col / (numCols / 2));
       } else if (hiddenSide === 'right') {
-        hideChance = (col - numCols / 2) / (numCols / 2); // 0% at middle, 100% at right edge
+        hideChance = (col - numCols / 2) / (numCols / 2);
       } else if (hiddenSide === 'top') {
-        hideChance = 1 - (row / (numRows / 2)); // 100% at top edge, 0% at middle
+        hideChance = 1 - (row / (numRows / 2));
       } else if (hiddenSide === 'bottom') {
-        hideChance = (row - numRows / 2) / (numRows / 2); // 0% at middle, 100% at bottom edge
+        hideChance = (row - numRows / 2) / (numRows / 2);
       }
 
-      // Only apply hiding chance to the specified side
       const isInHiddenSide = (
         (hiddenSide === 'left' && col < numCols / 2) ||
         (hiddenSide === 'right' && col >= numCols / 2) ||
@@ -52,21 +82,16 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide = 'right' }) => {
         (hiddenSide === 'bottom' && row >= numRows / 2)
       );
 
-      if (isInHiddenSide && Math.random() < hideChance) {
+      if (isInHiddenSide && seededRandom(random * 1000) < hideChance) {
         return null;
       }
 
-      // Apply color probabilities for visible pixels
-      const rand = Math.random();
-      if (rand < colorProbabilities["#9C6323"]) return "#9C6323";
-      if (rand < colorProbabilities["#9C6323"] + colorProbabilities["#F9A341"]) return "#F9A341";
+      const colorRand = seededRandom(random * 2000);
+      if (colorRand < 0.1) return "#9C6323";
+      if (colorRand < 0.4) return "#F9A341";
       return "#FFEC40";
-    }),
-    [numRows, numCols, hiddenSide, colorProbabilities]
-  );
-
-  const svgWidth = numCols * (pixelSize + gapSize);
-  const svgHeight = numRows * (pixelSize + gapSize);
+    });
+  }, [numRows, numCols, hiddenSide, randomSeed]);
 
   const handleCopySVG = () => {
     const svgElement = document.querySelector('svg');
@@ -90,6 +115,15 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide = 'right' }) => {
     <div className="w-screen h-screen flex items-center justify-center">
       <div className="absolute top-4 right-12 p-16 flex flex-col items-center gap-8">
         <div className="flex flex-col gap-4 w-64">
+          <Tabs defaultValue={hiddenSide} onValueChange={(value) => setHiddenSide(value as typeof hiddenSide)}>
+            <TabsList>
+              <TabsTrigger value="left">Left</TabsTrigger>
+              <TabsTrigger value="right">Right</TabsTrigger>
+              <TabsTrigger value="top">Top</TabsTrigger>
+              <TabsTrigger value="bottom">Bottom</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <div className="space-y-2">
             <p className="text-sm font-medium">Number of Rows: {numRows}</p>
             <Slider
@@ -119,35 +153,34 @@ const PixelGrid: React.FC<PixelGridProps> = ({ hiddenSide = 'right' }) => {
         </div>
       </div>
       <div
+        className="flex rounded-lg border border-white/20"
         style={{
           width: containerWidth,
-          height: containerHeight
+          height: containerHeight,
         }}
-        className="flex flex-col items-center justify-center gap-4"
       >
         <svg
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          preserveAspectRatio="xMidYMid meet"
-          fill="none"
+          className="w-full h-full bg-red-500"
+          viewBox={`0 0 ${containerWidth} ${containerHeight}`}
+          preserveAspectRatio="none"
         >
-          {Array.from({ length: numRows }, (_, rowIndex) => (
-            Array.from({ length: numCols }, (_, colIndex) => {
-              const index = rowIndex * numCols + colIndex;
-              const fillColor = randomPixels[index] || 'transparent';
-              return (
-                <rect
-                  key={`${rowIndex}-${colIndex}`}
-                  x={colIndex * (pixelSize + gapSize)}
-                  y={rowIndex * (pixelSize + gapSize)}
-                  width={pixelSize}
-                  height={pixelSize}
-                  fill={fillColor}
-                />
-              );
-            })
-          ))}
+          {randomPixels.map((fillColor, index) => {
+            const rowIndex = Math.floor(index / numCols);
+            const colIndex = index % numCols;
+
+            if (!fillColor) return null;
+
+            return (
+              <rect
+                key={`${rowIndex}-${colIndex}`}
+                x={offsetX + pixelSize + (colIndex * (pixelSize + gapSize))}
+                y={offsetY + pixelSize + (rowIndex * (pixelSize + gapSize))}
+                width={pixelSize}
+                height={pixelSize}
+                fill={fillColor}
+              />
+            );
+          })}
         </svg>
       </div>
     </div>

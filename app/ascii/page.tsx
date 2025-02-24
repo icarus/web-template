@@ -9,6 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { cn } from "@/lib/utils"
+import { Switch } from "@/components/ui/switch"
 
 const ASCII_SETS = {
   standard: ' .:-=+*#%@',
@@ -27,6 +29,7 @@ interface Settings {
   brightness: number;
   asciiSet: AsciiSet;
   colorScheme: 'white' | 'yellow';
+  inverted: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -34,7 +37,8 @@ const DEFAULT_SETTINGS: Settings = {
   contrast: 1,
   brightness: 1,
   asciiSet: 'standard',
-  colorScheme: 'white'
+  colorScheme: 'white',
+  inverted: false
 };
 
 const calculateScale = (containerWidth: number, containerHeight: number, contentWidth: number, contentHeight: number) => {
@@ -168,9 +172,10 @@ const AsciiPage = () => {
 
   const processImageData = (imageData: ImageData): string => {
     const ascii = ASCII_SETS[settings.asciiSet];
+    const asciiChars = settings.inverted ? ascii.split('').reverse().join('') : ascii;
+
     let result = '';
-    let chars = 0;
-    let positions: number[] = []; // Store positions of non-space characters
+    const positions: number[] = [];
 
     // First pass: count non-space chars and store their positions
     for (let y = 0; y < imageData.height; y++) {
@@ -179,12 +184,17 @@ const AsciiPage = () => {
         const r = imageData.data[idx];
         const g = imageData.data[idx + 1];
         const b = imageData.data[idx + 2];
+        const a = imageData.data[idx + 3];
+
+        // Skip transparent pixels
+        if (a < 255) {
+          continue;
+        }
 
         const brightness = (r + g + b) / 3;
-        const charIndex = Math.floor((brightness / 255) * (ascii.length - 1));
-        if (ascii[charIndex] !== ' ') {
+        const charIndex = Math.floor((brightness / 255) * (asciiChars.length - 1));
+        if (asciiChars[charIndex] !== ' ') {
           positions.push(y * imageData.width + x);
-          chars++;
         }
       }
     }
@@ -203,10 +213,17 @@ const AsciiPage = () => {
         const r = imageData.data[idx];
         const g = imageData.data[idx + 1];
         const b = imageData.data[idx + 2];
+        const a = imageData.data[idx + 3];
+
+        // Use space for transparent pixels
+        if (a < 255) {
+          result += ' ';
+          continue;
+        }
 
         const brightness = (r + g + b) / 3;
-        const charIndex = Math.floor((brightness / 255) * (ascii.length - 1));
-        result += ascii[charIndex];
+        const charIndex = Math.floor((brightness / 255) * (asciiChars.length - 1));
+        result += asciiChars[charIndex];
       }
       result += '\n';
     }
@@ -223,19 +240,14 @@ const AsciiPage = () => {
     const contentWidth = lines[0]?.length * charWidth;
     const contentHeight = lines.length * lineHeight;
 
-    // Create a seed for consistent random colors
-    const colorSeed = new Array(lines.join('').length)
-      .fill(0)
-      .map(() => YELLOW_COLORS[Math.floor(Math.random() * YELLOW_COLORS.length)]);
-
     let svgText = '';
-    let charCount = 0;
 
     lines.forEach((line, i) => {
       Array.from(line).forEach((char, j) => {
         if (char !== ' ') {
-          const color = settings.colorScheme === 'yellow'
-            ? colorSeed[charCount]
+          const pos = i * settings.width + j;
+          const color = settings.colorScheme === 'yellow' && char !== ' '
+            ? colorSeed[pos]
             : 'white';
 
           svgText += `<text
@@ -246,8 +258,6 @@ const AsciiPage = () => {
             fill="${color}"
             style="white-space: pre; letter-spacing: 0"
           >${char}</text>`;
-
-          charCount++;
         }
       });
     });
@@ -294,8 +304,18 @@ const AsciiPage = () => {
     }
   };
 
-  const handleSettingChange = (key: keyof Settings, value: number | AsciiSet | 'white' | 'yellow') => {
+  const handleSettingChange = (key: keyof Settings, value: number | AsciiSet | 'white' | 'yellow' | boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+
+    // If changing color scheme or inversion, regenerate SVG immediately
+    if (key === 'colorScheme' || key === 'inverted') {
+      // Need to wait for state update before regenerating SVG
+      setTimeout(() => {
+        const newSvg = convertAsciiToSvg(asciiArt);
+        setSvgContent(newSvg);
+      }, 0);
+    }
+
     updateImage();
   };
 
@@ -307,19 +327,21 @@ const AsciiPage = () => {
   return (
     <main className="text-white container mx-auto px-4 pt-8 pb-32">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6 shadow-sm">
+        <div className={cn("rounded-lg border border-neutral-800 bg-neutral-900 p-6 shadow-sm")}>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={convertToAscii}
-            className="block w-full text-sm text-neutral-400
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-medium
-              file:bg-neutral-800 file:text-neutral-200
-              hover:file:bg-neutral-700
-              transition-colors"
+            className={cn(
+              "block w-full text-sm text-neutral-400",
+              "file:mr-4 file:py-2 file:px-4",
+              "file:rounded-md file:border-0",
+              "file:text-sm file:font-medium",
+              "file:bg-neutral-800 file:text-neutral-200",
+              "hover:file:bg-neutral-700",
+              "transition-colors"
+            )}
           />
         </div>
 
@@ -365,7 +387,7 @@ const AsciiPage = () => {
               </div>
             </div>
 
-            <div className="rounded-lg bg-neutral-900/80 p-6 shadow-sm space-y-4">
+            <div className={cn("rounded-lg bg-neutral-900/80 p-6 shadow-sm space-y-4")}>
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm text-neutral-400">Resolution</label>
@@ -375,33 +397,28 @@ const AsciiPage = () => {
                     step={1}
                     value={[settings.width]}
                     onValueChange={([value]) => handleSettingChange('width', value)}
-                    className="accent-yellow-300"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm text-neutral-400">Contrast</label>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="2"
-                    step="0.1"
-                    value={settings.contrast}
-                    onChange={(e) => handleSettingChange('contrast', Number(e.target.value))}
-                    className="w-full accent-yellow-300"
+                  <Slider
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    value={[settings.contrast]}
+                    onValueChange={([value]) => handleSettingChange('contrast', value)}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm text-neutral-400">Brightness</label>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="1.5"
-                    step="0.1"
-                    value={settings.brightness}
-                    onChange={(e) => handleSettingChange('brightness', Number(e.target.value))}
-                    className="w-full accent-yellow-300"
+                  <Slider
+                    min={0.5}
+                    max={1.5}
+                    step={0.1}
+                    value={[settings.brightness]}
+                    onValueChange={([value]) => handleSettingChange('brightness', value)}
                   />
                 </div>
 
@@ -438,6 +455,19 @@ const AsciiPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-neutral-400">Invert Colors</label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={settings.inverted}
+                      onCheckedChange={(checked) => handleSettingChange('inverted', checked)}
+                    />
+                    <span className="text-sm text-neutral-400">
+                      {settings.inverted ? 'Inverted' : 'Normal'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end pt-2">
@@ -453,14 +483,21 @@ const AsciiPage = () => {
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto mt-12 fixed bottom-0 left-0 right-0 bg-black p-4 flex gap-4">
-        <hr className="w-screen h-px bg-neutral-800 absolute top-0 left-1/2 -translate-x-1/2 border-0" />
+      <div className={cn(
+        "max-w-4xl mx-auto mt-12 fixed bottom-0 left-0 right-0 bg-black p-4 flex gap-4"
+      )}>
+        <hr className={cn("w-screen h-px bg-neutral-800 absolute top-0 left-1/2 -translate-x-1/2 border-0")} />
         <button
           onClick={downloadSvg}
           disabled={!svgContent}
-          className="inline-flex items-center px-4 py-2
-            border border-yellow-300 bg-yellow-300/15 hover:brightness-90 backdrop-blur-sm text-yellow-300 uppercase text-sm font-mono
-            transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+          className={cn(
+            "inline-flex items-center px-4 py-2",
+            "border border-yellow-300 bg-yellow-300/15",
+            "hover:brightness-90 backdrop-blur-sm",
+            "text-yellow-300 uppercase text-sm font-mono",
+            "transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+          )}
         >
           Download SVG
         </button>
@@ -468,10 +505,15 @@ const AsciiPage = () => {
         <button
           onClick={copyToClipboard}
           disabled={!svgContent}
-          className={`grayscale inline-flex items-center px-4 py-2
-            border border-yellow-300 bg-yellow-300/15 hover:brightness-90 backdrop-blur-sm text-yellow-300 uppercase text-sm font-mono
-            transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
-            ${copied ? 'border-green-400 text-green-400 !grayscale-0' : ''}`}
+          className={cn(
+            "grayscale inline-flex items-center px-4 py-2",
+            "border border-yellow-300 bg-yellow-300/15",
+            "hover:brightness-90 backdrop-blur-sm",
+            "text-yellow-300 uppercase text-sm font-mono",
+            "transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none",
+            copied && "!border-green-400 !bg-green-400/15 !text-green-400 !grayscale-0"
+          )}
         >
           {copied ? 'Copied!' : 'Copy SVG'}
         </button>
